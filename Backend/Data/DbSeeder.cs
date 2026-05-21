@@ -11,18 +11,18 @@ public static class DbSeeder
             if (!context.Roles.Any())
             {
                 context.Roles.AddRange(
-                    new Role { RoleId = 1, RoleName = "Admin" },
-                    new Role { RoleId = 2, RoleName = "Staff" },
-                    new Role { RoleId = 3, RoleName = "Customer" });
+                    new Role { RoleName = "Admin" },
+                    new Role { RoleName = "Staff" },
+                    new Role { RoleName = "Customer" });
                 context.SaveChanges();
             }
 
             if (!context.Categories.Any())
             {
                 context.Categories.AddRange(
-                    new Category { CategoryId = 1, Name = "Laptop", Slug = "laptop", DisplayOrder = 1 },
-                    new Category { CategoryId = 2, Name = "Dien thoai", Slug = "phone", DisplayOrder = 2 },
-                    new Category { CategoryId = 3, Name = "Phu kien", Slug = "accessory", DisplayOrder = 3 });
+                    new Category { Name = "Laptop", Slug = "laptop", DisplayOrder = 1 },
+                    new Category { Name = "Dien thoai", Slug = "phone", DisplayOrder = 2 },
+                    new Category { Name = "Phu kien", Slug = "accessory", DisplayOrder = 3 });
                 context.SaveChanges();
             }
 
@@ -48,11 +48,15 @@ public static class DbSeeder
 
             if (!context.Products.Any())
             {
-                AddProduct(context, 1, "Laptop ASUS ROG Strix G16", "laptop-asus-rog-strix-g16", "Asus", 35000000, 32000000, true);
-                AddProduct(context, 1, "MacBook Air M3 13 inch", "macbook-air-m3-13", "Apple", 28990000, 27490000, true);
-                AddProduct(context, 2, "iPhone 15 Pro Max", "iphone-15-pro-max", "Apple", 34990000, 32990000, true);
-                AddProduct(context, 2, "Samsung Galaxy S24 Ultra", "samsung-galaxy-s24-ultra", "Samsung", 33990000, 29990000, false);
-                AddProduct(context, 3, "Tai nghe Sony WH-1000XM5", "sony-wh-1000xm5", "Sony", 8990000, 7990000, false);
+                var laptopId = context.Categories.Where(x => x.Slug == "laptop").Select(x => x.CategoryId).First();
+                var phoneId = context.Categories.Where(x => x.Slug == "phone").Select(x => x.CategoryId).First();
+                var accessoryId = context.Categories.Where(x => x.Slug == "accessory").Select(x => x.CategoryId).First();
+
+                AddProduct(context, laptopId, "Laptop ASUS ROG Strix G16", "laptop-asus-rog-strix-g16", "Asus", 35000000, 32000000, true);
+                AddProduct(context, laptopId, "MacBook Air M3 13 inch", "macbook-air-m3-13", "Apple", 28990000, 27490000, true);
+                AddProduct(context, phoneId, "iPhone 15 Pro Max", "iphone-15-pro-max", "Apple", 34990000, 32990000, true);
+                AddProduct(context, phoneId, "Samsung Galaxy S24 Ultra", "samsung-galaxy-s24-ultra", "Samsung", 33990000, 29990000, false);
+                AddProduct(context, accessoryId, "Tai nghe Sony WH-1000XM5", "sony-wh-1000xm5", "Sony", 8990000, 7990000, false);
                 context.SaveChanges();
             }
 

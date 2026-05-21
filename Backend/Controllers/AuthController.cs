@@ -45,7 +45,7 @@ public class AuthController : ControllerBase
             FullName = dto.FullName.Trim(),
             Phone = dto.Phone,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            RoleId = customerRoleId == 0 ? 3 : customerRoleId
+            RoleId = customerRoleId
         };
 
         _context.Users.Add(user);

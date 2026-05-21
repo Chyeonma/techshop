@@ -32,6 +32,7 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<Role>().Property(r => r.RoleId).ValueGeneratedOnAdd();
         modelBuilder.Entity<Role>().HasIndex(x => x.RoleName).IsUnique();
         modelBuilder.Entity<Category>().HasIndex(x => x.Slug).IsUnique();
         modelBuilder.Entity<User>().HasIndex(x => x.Email).IsUnique();
