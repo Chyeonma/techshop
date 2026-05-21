@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TechShop.Backend.Data;
 
@@ -11,9 +12,11 @@ using TechShop.Backend.Data;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260521034512_InitialCreateFix")]
+    partial class InitialCreateFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -739,10 +742,7 @@ namespace api.Migrations
             modelBuilder.Entity("TechShop.Backend.Models.Role", b =>
                 {
                     b.Property<int>("RoleId")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleId"));
 
                     b.Property<string>("RoleName")
                         .IsRequired()
@@ -750,9 +750,6 @@ namespace api.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("RoleId");
-
-                    b.HasIndex("RoleName")
-                        .IsUnique();
 
                     b.ToTable("Roles");
                 });
