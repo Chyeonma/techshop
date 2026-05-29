@@ -10,6 +10,9 @@ import AccessoryPage from './pages/AccessoryPage'
 import BrandSeriesPage from './pages/BrandSeriesPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import CartPage from './pages/CartPage'
+import CheckoutPage from './pages/CheckoutPage'
+import AccountPage from './pages/AccountPage'
+import AuthModal from './components/Auth/AuthModal'
 
 function App() {
   return (
@@ -26,9 +29,12 @@ function App() {
           <Route path="/phu-kien" element={<AccessoryPage />} />
           <Route path="/san-pham/:id" element={<ProductDetailPage />} />
           <Route path="/gio-hang" element={<CartPage />} />
+          <Route path="/thanh-toan" element={<CheckoutPage />} />
+          <Route path="/tai-khoan" element={<AccountPage />} />
         </Routes>
       </main>
       <Footer />
+      <AuthModal />
     </div>
   )
 }

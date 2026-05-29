@@ -1,0 +1,26 @@
+/* ===========================
+   AccountPage layout
+   =========================== */
+
+.account-page {
+  padding-top: 24px;
+  padding-bottom: 56px;
+  min-height: 60vh;
+}
+
+/* Two-column layout */
+.account-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 0;
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .account-layout {
+    grid-template-columns: 1fr;
+  }
+}

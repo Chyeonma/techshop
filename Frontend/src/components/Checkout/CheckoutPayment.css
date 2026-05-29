@@ -1,0 +1,49 @@
+/* ===========================
+   CheckoutPayment
+   =========================== */
+
+.checkout-payment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.checkout-payment-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkout-payment-option:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.checkout-payment-option:first-child {
+  padding-top: 0;
+}
+
+.checkout-payment-icon {
+  width: 36px;
+  height: 28px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  letter-spacing: -0.5px;
+  color: #fff;
+}
+
+.checkout-payment-label {
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  flex: 1;
+  line-height: 1.35;
+}

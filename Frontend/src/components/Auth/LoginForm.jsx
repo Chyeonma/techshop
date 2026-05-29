@@ -1,0 +1,103 @@
+import { useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
+
+/**
+ * LoginForm
+ *
+ * Props:
+ *   onSwitchToRegister {function}
+ */
+function LoginForm({ onSwitchToRegister }) {
+  const { login, close } = useAuth()
+  const [email,    setEmail   ] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
+  const [error,    setError   ] = useState('')
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    setError('')
+    const result = login(email, password)
+    if (result.ok) {
+      close()
+    } else {
+      setError(result.error)
+    }
+  }
+
+  return (
+    <form className="auth-dialog-body" onSubmit={handleSubmit} noValidate>
+      {/* Email */}
+      <input
+        id="login-email"
+        className="auth-input"
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={e => { setEmail(e.target.value); setError('') }}
+        autoComplete="email"
+        required
+      />
+
+      {/* Password */}
+      <div className="auth-input-wrap">
+        <input
+          id="login-password"
+          className="auth-input"
+          type={showPass ? 'text' : 'password'}
+          placeholder="Mật khẩu"
+          value={password}
+          onChange={e => { setPassword(e.target.value); setError('') }}
+          autoComplete="current-password"
+          required
+        />
+        <button
+          type="button"
+          className="auth-eye-btn"
+          onClick={() => setShowPass(p => !p)}
+          aria-label={showPass ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+          id="login-toggle-pass"
+        >
+          {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+
+      {/* Error message */}
+      {error && (
+        <p style={{ color: '#e31837', fontSize: '13px', margin: '-4px 0' }}>
+          {error}
+        </p>
+      )}
+
+      {/* Submit */}
+      <button type="submit" className="auth-btn-primary" id="login-submit-btn">
+        Đăng nhập
+      </button>
+
+      {/* OR divider */}
+      <div className="auth-or">hoặc đăng nhập bằng</div>
+
+      {/* Google */}
+      <button type="button" className="auth-btn-google" id="login-google-btn">
+        <span className="auth-btn-google-icon">G+</span>
+        Google
+      </button>
+
+      {/* Switch to register */}
+      <p className="auth-footer">
+        Bạn chưa có tài khoản?{' '}
+        <button
+          type="button"
+          className="auth-footer-link"
+          onClick={onSwitchToRegister}
+          id="login-switch-register"
+        >
+          Đăng ký ngay!
+        </button>
+      </p>
+    </form>
+  )
+}
+
+export default LoginForm
