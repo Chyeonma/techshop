@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import './CartSummary.css'
 
@@ -13,6 +14,7 @@ function formatPrice(price) {
 function CartSummary() {
   const { subtotal, discount, selectedItems } = useCart()
   const [expanded, setExpanded] = useState(true)
+  const navigate = useNavigate()
 
   const hasSelection = selectedItems.length > 0
 
@@ -67,6 +69,7 @@ function CartSummary() {
         disabled={!hasSelection}
         id="cart-confirm-btn"
         aria-label="Xác nhận đơn hàng"
+        onClick={() => navigate('/thanh-toan')}
       >
         Xác nhận đơn
       </button>

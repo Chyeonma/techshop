@@ -1,0 +1,237 @@
+/* ===========================
+   Account content panels (shared)
+   =========================== */
+
+.account-content {
+  padding: 28px 32px;
+  min-height: 340px;
+}
+
+.account-content-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+/* ── AccountInfo form ── */
+.account-info-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.account-info-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.account-info-row:first-child { padding-top: 0; }
+.account-info-row:last-child  { border-bottom: none; }
+
+.account-info-label {
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.account-info-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  font-family: var(--font-base);
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+  background: var(--white);
+}
+
+.account-info-input:focus {
+  border-color: #16a34a;
+}
+
+.account-info-input::placeholder {
+  color: #9ca3af;
+}
+
+.account-info-email {
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+}
+
+/* Gender radios */
+.account-info-gender {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.account-info-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+}
+
+.account-info-radio-label input[type='radio'] {
+  accent-color: var(--primary);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* DOB selects */
+.account-info-dob {
+  display: flex;
+  gap: 8px;
+}
+
+.account-info-select {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  font-family: var(--font-base);
+  color: var(--text-primary);
+  background: var(--white);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.account-info-select:focus { border-color: var(--primary); }
+
+/* Save button */
+.account-info-save {
+  margin-top: 20px;
+  padding: 11px 28px;
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition), transform var(--transition);
+  align-self: flex-start;
+}
+
+.account-info-save:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+/* ── AccountOrders tabs ── */
+.account-orders-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 20px;
+  gap: 0;
+}
+
+.account-orders-tab {
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-family: var(--font-base);
+  transition: color var(--transition);
+}
+
+.account-orders-tab:hover { color: var(--text-secondary); }
+
+.account-orders-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.account-orders-empty {
+  font-size: var(--font-size-md);
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+
+/* ── AccountLogout confirm ── */
+.account-logout-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 0;
+  gap: 20px;
+}
+
+.account-logout-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 3px solid #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.account-logout-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.account-logout-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.account-logout-cancel {
+  padding: 11px 36px;
+  background: #e5e7eb;
+  color: var(--text-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.account-logout-cancel:hover { background: #d1d5db; }
+
+.account-logout-confirm {
+  padding: 11px 36px;
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition), transform var(--transition);
+}
+
+.account-logout-confirm:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}

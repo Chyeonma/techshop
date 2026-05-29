@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, ShoppingCart, User, Menu, Smartphone, Laptop, Headphones } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
+import { useAuth } from '../../context/AuthContext'
 import './Header.css'
 
 function Header() {
@@ -10,6 +11,7 @@ function Header() {
   const menuRef  = useRef(null)
   const navigate = useNavigate()
   const { totalItems } = useCart()
+  const { openLogin, user } = useAuth()
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -96,10 +98,30 @@ function Header() {
               <span className="header-cart-badge">{totalItems > 99 ? '99+' : totalItems}</span>
             )}
           </button>
-          <button className="header-action-btn" id="header-login-btn">
-            <User size={18} />
-            <span>Đăng nhập</span>
-          </button>
+          {user ? (
+            <button
+              className="header-action-btn header-user-btn"
+              id="header-account-btn"
+              onClick={() => navigate('/tai-khoan')}
+              aria-label={`Tài khoản ${user.fullName}`}
+            >
+              <User size={18} />
+              <span className="header-user-text">
+                <span className="header-user-greeting">Xin chào</span>
+                <span className="header-user-name">{user.fullName}</span>
+              </span>
+            </button>
+          ) : (
+            <button
+              className="header-action-btn"
+              id="header-login-btn"
+              onClick={openLogin}
+              aria-label="Đăng nhập"
+            >
+              <User size={18} />
+              <span>Đăng nhập</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

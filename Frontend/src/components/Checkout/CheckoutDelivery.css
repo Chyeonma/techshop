@@ -1,0 +1,46 @@
+/* ===========================
+   CheckoutDelivery
+   =========================== */
+
+.checkout-delivery-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.checkout-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  user-select: none;
+}
+
+/* Custom radio */
+.checkout-radio {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+
+.checkout-radio.checked {
+  border-color: var(--primary);
+}
+
+.checkout-radio.checked::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+}
+
