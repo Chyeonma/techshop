@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Search, Plus, Edit2, Trash2, X, ChevronLeft, ChevronRight, UserCheck, UserX, Key } from 'lucide-react'
+import { Search, Plus, Edit2, X, ChevronLeft, ChevronRight, UserCheck, UserX, Key } from 'lucide-react'
 import { adminUsersApi } from '../../api/adminApi'
 
 // ─── User Form Modal ─────────────────────────────────────────────────────────
@@ -214,11 +214,6 @@ export default function AdminUsers() {
       await adminUsersApi.updateStatus(u.userId, !u.isActive)
       load()
     } catch { /**/ }
-  }
-
-  const handleDelete = async (u) => {
-    if (!confirm(`Bạn có chắc muốn khóa tài khoản của ${u.fullName}?`)) return
-    try { await adminUsersApi.delete(u.userId); load() } catch { /**/ }
   }
 
   const totalPages = Math.ceil(pagination.total / pagination.pageSize)

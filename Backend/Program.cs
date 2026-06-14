@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using TechShop.Backend.Data;
+using TechShop.Backend.Middleware;
 using TechShop.Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -84,6 +85,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseExceptionMiddleware();
 
 app.UseForwardedHeaders();
 if (!app.Environment.IsProduction())

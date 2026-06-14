@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  Search, Plus, Edit2, Trash2, Eye, ToggleLeft, ToggleRight, X, ChevronLeft, ChevronRight
+  Search, Plus, Edit2, Trash2, X, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { adminProductsApi } from '../../api/adminApi'
 
@@ -237,7 +237,7 @@ export default function AdminProducts() {
     finally { setLoading(false) }
   }, [pagination.page, pagination.pageSize, filterCat])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [pagination.page, pagination.pageSize, filterCat])
 
   const handleSaved = () => { setModal(null); load() }
 

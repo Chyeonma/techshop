@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Search, ChevronLeft, ChevronRight, X, Truck, CheckCircle, Clock } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, X, Truck } from 'lucide-react'
 import { adminOrdersApi } from '../../api/adminApi'
 
 const formatCurrency = (v) =>
@@ -130,7 +130,7 @@ export default function AdminOrders() {
     finally { setLoading(false) }
   }, [statusFilter, pagination.page, pagination.pageSize])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [statusFilter, pagination.page, pagination.pageSize])
 
   const totalPages = Math.ceil(pagination.total / pagination.pageSize)
 

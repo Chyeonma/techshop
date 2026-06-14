@@ -61,4 +61,7 @@ public record UpdateProductDto(
     string? ThumbnailUrl,
     string? Tags,
     bool IsFeatured,
-    bool IsActive);
+    bool IsActive,
+    List<ProductVariantInputDto>? Variants,
+    List<ProductImageInputDto>? Images,
+    List<SpecificationInputDto>? Specifications);

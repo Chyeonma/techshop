@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { cartApi } from '../api/client'
 import { mapCart } from '../api/mappers'
 
@@ -13,6 +13,10 @@ export function CartProvider({ children }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // Ref để tránh stale closure khi handleAuthChanged dùng items
+  const itemsRef = useRef(items)
+  itemsRef.current = items
 
   const applyCart = useCallback((cart, nextSelected = null, fallbackSelected = false) => {
     setItems(prev => {
@@ -42,11 +46,11 @@ export function CartProvider({ children }) {
   useEffect(() => {
     async function handleAuthChanged(event) {
       if (event.detail?.type === 'login') {
-        const snapshot = items
+        const snapshot = itemsRef.current
         try {
           await Promise.all(snapshot.map(item => cartApi.addItem(item.variantId, item.quantity)))
         } catch {
-          // If a guest cart item cannot sync, the user cart should still load.
+          // Nếu có item không sync được, cart vẫn load bình thường
         }
         await refresh(false)
         return
@@ -60,7 +64,7 @@ export function CartProvider({ children }) {
 
     window.addEventListener('techshop-auth-changed', handleAuthChanged)
     return () => window.removeEventListener('techshop-auth-changed', handleAuthChanged)
-  }, [items, refresh])
+  }, [refresh])
 
   const addToCart = useCallback(async (product, selected = true) => {
     if (!product.variantId) {

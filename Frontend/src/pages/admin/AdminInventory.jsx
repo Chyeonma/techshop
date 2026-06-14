@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Search, PackagePlus, PackageMinus, SlidersHorizontal, History, X, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
+import { Search, PackagePlus, PackageMinus, SlidersHorizontal, History, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { inventoryApi } from '../../api/adminApi'
 
 // ─── Stock Change Modal ──────────────────────────────────────────────────────

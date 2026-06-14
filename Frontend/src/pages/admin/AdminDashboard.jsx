@@ -6,7 +6,7 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
-import { reportsApi, adminOrdersApi, adminUsersApi, inventoryApi } from '../../api/adminApi'
+import { reportsApi, adminOrdersApi } from '../../api/adminApi'
 import { useNavigate } from 'react-router-dom'
 
 const formatCurrency = (v) =>
