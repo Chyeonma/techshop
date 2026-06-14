@@ -88,8 +88,8 @@ function UserFormModal({ user, onClose, onSaved }) {
                 <label className="admin-form-label required">Vai trò</label>
                 <select className="admin-form-select" value={form.roleId} onChange={e => set('roleId', e.target.value)}>
                   <option value={1}>Admin</option>
-                  <option value={2}>Khách hàng</option>
-                  <option value={3}>Staff</option>
+                  <option value={2}>Staff</option>
+                  <option value={3}>Khách hàng</option>
                 </select>
               </div>
             </div>
@@ -261,8 +261,8 @@ export default function AdminUsers() {
             >
               <option value="">Tất cả vai trò</option>
               <option value="1">Admin</option>
-              <option value="2">Khách hàng</option>
-              <option value="3">Staff</option>
+              <option value="2">Staff</option>
+              <option value="3">Khách hàng</option>
             </select>
             <select
               id="user-active-filter"

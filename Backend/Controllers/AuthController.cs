@@ -118,7 +118,8 @@ public class AuthController : ControllerBase
 
     private string GenerateJwtToken(User user)
     {
-        var roleName = user.Role?.RoleName ?? (user.RoleId == 1 ? "Admin" : user.RoleId == 2 ? "Staff" : "Customer");
+        // Role is always included via .Include(u => u.Role) in Login/Refresh calls
+        var roleName = user.Role?.RoleName ?? "Customer";
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
