@@ -1,5 +1,5 @@
 // Admin API — maps to all backend admin controller endpoints
-import { getAuthState } from './client'
+import { getAuthState, clearAuthState, setAuthState } from './client'
 
 let API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://techshop-backend-8sfu.onrender.com').replace(/\/$/, '')
 const FALLBACK_URLS = [
@@ -15,6 +15,44 @@ export class AdminApiError extends Error {
     this.status = status
     this.payload = payload
   }
+}
+
+const REFRESH_SUBSCRIBERS = []
+let REFRESHING = false
+let REFRESH_PROMISE = null
+
+function onRefreshed(token) {
+  REFRESH_SUBSCRIBERS.forEach(cb => cb(token))
+  REFRESH_SUBSCRIBERS.length = 0
+}
+
+async function _doRefresh() {
+  const auth = getAuthState()
+  if (!auth?.refreshToken) throw new Error('No refresh token')
+
+  const res = await fetch(`${API_BASE_URL}/api/Auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken: auth.refreshToken }),
+  })
+
+  const text = await res.text()
+  const data = text ? JSON.parse(text) : null
+
+  if (!res.ok) {
+    clearAuthState()
+    window.dispatchEvent(new CustomEvent('techshop-auth-changed', { detail: { type: 'logout' } }))
+    throw new Error(data?.message || 'Refresh token hết hạn.')
+  }
+
+  const newAuth = {
+    accessToken: data.data.accessToken,
+    refreshToken: data.data.refreshToken,
+    user: data.data.user,
+  }
+  setAuthState(newAuth)
+  window.dispatchEvent(new CustomEvent('techshop-auth-changed', { detail: { type: 'token-refreshed', user: data.data.user } }))
+  return data.data.accessToken
 }
 
 async function adminRequest(path, options = {}) {
@@ -63,6 +101,36 @@ async function adminRequest(path, options = {}) {
   const payload = text ? JSON.parse(text) : null
 
   if (!response.ok) {
+    if (response.status === 401 && auth?.refreshToken && !path.toLowerCase().includes('/auth/')) {
+      try {
+        if (!REFRESHING) {
+          REFRESHING = true
+          REFRESH_PROMISE = _doRefresh()
+            .then(token => { onRefreshed(token); return token })
+            .catch(err => { onRefreshed(null); throw err })
+            .finally(() => { REFRESHING = false; REFRESH_PROMISE = null })
+        }
+        const newToken = await REFRESH_PROMISE
+
+        headers.set('Authorization', `Bearer ${newToken}`)
+        const retryRes = await fetch(`${API_BASE_URL}${path}`, fetchOptions)
+        const retryText = await retryRes.text()
+        const retryPayload = retryText ? JSON.parse(retryText) : null
+
+        if (!retryRes.ok) {
+          throw new AdminApiError(
+            retryPayload?.message || retryPayload?.error || 'Lỗi máy chủ.',
+            retryRes.status,
+            retryPayload,
+          )
+        }
+
+        return retryPayload
+      } catch {
+        // Refresh + retry thất bại → throw lỗi gốc
+      }
+    }
+
     const message = payload?.message || payload?.error || 'Lỗi máy chủ.'
     throw new AdminApiError(message, response.status, payload)
   }
