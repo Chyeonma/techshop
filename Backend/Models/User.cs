@@ -27,6 +27,9 @@ public class User
     [MaxLength(500)]
     public string? AvatarUrl { get; set; }
 
+    [MaxLength(100)]
+    public string? GoogleId { get; set; }
+
     [Required]
     public int RoleId { get; set; }
     public Role? Role { get; set; }

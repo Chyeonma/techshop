@@ -194,6 +194,14 @@ export const authApi = {
     })
     return response.data
   },
+
+  async googleLogin(credential) {
+    const response = await apiRequest('/api/Auth/google-login', {
+      method: 'POST',
+      body: { credential },
+    })
+    return response.data
+  },
 }
 
 export const productsApi = {

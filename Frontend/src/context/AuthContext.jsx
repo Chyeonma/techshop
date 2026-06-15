@@ -68,6 +68,16 @@ export function AuthProvider({ children }) {
     }
   }, [saveSession])
 
+  const googleLogin = useCallback(async (credential) => {
+    try {
+      const session = await authApi.googleLogin(credential)
+      saveSession(session)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: err.message || 'Đăng nhập Google thất bại.' }
+    }
+  }, [saveSession])
+
   const logout = useCallback(async () => {
     const refreshToken = tokens?.refreshToken
     setUser(null)
@@ -120,6 +130,7 @@ export function AuthProvider({ children }) {
     close,
     login,
     register,
+    googleLogin,
     logout,
     updateUser,
   }), [isOpen, mode, user, tokens, openLogin, openRegister, close, login, register, logout, updateUser])

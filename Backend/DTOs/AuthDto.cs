@@ -4,3 +4,4 @@ public record RegisterDto(string Email, string Password, string FullName, string
 public record LoginDto(string Email, string Password);
 public record RefreshTokenDto(string RefreshToken);
 public record LogoutDto(string RefreshToken);
+public record GoogleLoginDto(string Credential);

@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import './App.css'
 import ScrollToTop from './components/ScrollToTop/ScrollToTop'
 import Header from './components/Header/Header'
@@ -25,9 +26,11 @@ import AdminUsers from './pages/admin/AdminUsers'
 import AdminPromotions from './pages/admin/AdminPromotions'
 import AdminReports from './pages/admin/AdminReports'
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+
 function App() {
   return (
-    <>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <ScrollToTop />
       <Routes>
         {/* ── Admin routes (own layout, no public Header/Footer) ── */}
@@ -65,7 +68,7 @@ function App() {
           </div>
         } />
       </Routes>
-    </>
+    </GoogleOAuthProvider>
   )
 }
 

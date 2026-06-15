@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
+import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../../context/AuthContext'
 
 /**
@@ -9,7 +10,7 @@ import { useAuth } from '../../context/AuthContext'
  *   onSwitchToLogin {function} — called when "Đăng nhập!" is clicked
  */
 function RegisterForm({ onSwitchToLogin }) {
-  const { register, close } = useAuth()
+  const { register, googleLogin, close } = useAuth()
   const [email,    setEmail   ] = useState('')
   const [lastName, setLastName] = useState('')
   const [firstName,setFirstName]= useState('')
@@ -112,10 +113,16 @@ function RegisterForm({ onSwitchToLogin }) {
       <div className="auth-or">hoặc đăng ký bằng</div>
 
       {/* Google */}
-      <button type="button" className="auth-btn-google" id="register-google-btn">
-        <span className="auth-btn-google-icon">G+</span>
-        Google
-      </button>
+      <GoogleLogin
+        onSuccess={async credentialResponse => {
+          const result = await googleLogin(credentialResponse.credential)
+          if (!result.ok) setError(result.error)
+          else close()
+        }}
+        onError={() => setError('Đăng nhập Google thất bại.')}
+        shape="rectangular"
+        width="100%"
+      />
 
       {/* Switch to login */}
       <p className="auth-footer">
