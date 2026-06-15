@@ -1,32 +1,36 @@
-import { Routes, Route } from 'react-router-dom'
+import { GoogleOAuthProvider } from '@react-oauth/google'
+import { Route, Routes } from 'react-router-dom'
 import './App.css'
-import ScrollToTop from './components/ScrollToTop/ScrollToTop'
-import Header from './components/Header/Header'
+import AuthModal from './components/Auth/AuthModal'
 import Footer from './components/Footer/Footer'
-import HomePage from './pages/HomePage'
-import PhonePage from './pages/PhonePage'
-import LaptopPage from './pages/LaptopPage'
+import Header from './components/Header/Header'
+import ScrollToTop from './components/ScrollToTop/ScrollToTop'
 import AccessoryPage from './pages/AccessoryPage'
+import AccountPage from './pages/AccountPage'
 import BrandSeriesPage from './pages/BrandSeriesPage'
-import ProductDetailPage from './pages/ProductDetailPage'
 import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
-import AccountPage from './pages/AccountPage'
-import AuthModal from './components/Auth/AuthModal'
+import HomePage from './pages/HomePage'
+import LaptopPage from './pages/LaptopPage'
+import NotFound from './pages/NotFound'
+import PhonePage from './pages/PhonePage'
+import ProductDetailPage from './pages/ProductDetailPage'
 
 // Admin
-import AdminLayout from './pages/admin/components/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminProducts from './pages/admin/AdminProducts'
-import AdminOrders from './pages/admin/AdminOrders'
 import AdminInventory from './pages/admin/AdminInventory'
-import AdminUsers from './pages/admin/AdminUsers'
+import AdminOrders from './pages/admin/AdminOrders'
+import AdminProducts from './pages/admin/AdminProducts'
 import AdminPromotions from './pages/admin/AdminPromotions'
 import AdminReports from './pages/admin/AdminReports'
+import AdminUsers from './pages/admin/AdminUsers'
+import AdminLayout from './pages/admin/components/AdminLayout'
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '921390862640-24aj2efd2mod0ocrffgoobe0r35rln9j.apps.googleusercontent.com'
 
 function App() {
   return (
-    <>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <ScrollToTop />
       <Routes>
         {/* ── Admin routes (own layout, no public Header/Footer) ── */}
@@ -56,6 +60,7 @@ function App() {
                 <Route path="/gio-hang" element={<CartPage />} />
                 <Route path="/thanh-toan" element={<CheckoutPage />} />
                 <Route path="/tai-khoan" element={<AccountPage />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
             <Footer />
@@ -63,7 +68,7 @@ function App() {
           </div>
         } />
       </Routes>
-    </>
+    </GoogleOAuthProvider>
   )
 }
 

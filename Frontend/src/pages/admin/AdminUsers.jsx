@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Search, Plus, Edit2, Trash2, X, ChevronLeft, ChevronRight, UserCheck, UserX, Key } from 'lucide-react'
+import { Search, Plus, Edit2, X, ChevronLeft, ChevronRight, UserCheck, UserX, Key } from 'lucide-react'
 import { adminUsersApi } from '../../api/adminApi'
 
 // ─── User Form Modal ─────────────────────────────────────────────────────────
@@ -88,8 +88,8 @@ function UserFormModal({ user, onClose, onSaved }) {
                 <label className="admin-form-label required">Vai trò</label>
                 <select className="admin-form-select" value={form.roleId} onChange={e => set('roleId', e.target.value)}>
                   <option value={1}>Admin</option>
-                  <option value={2}>Khách hàng</option>
-                  <option value={3}>Staff</option>
+                  <option value={2}>Staff</option>
+                  <option value={3}>Khách hàng</option>
                 </select>
               </div>
             </div>
@@ -216,11 +216,6 @@ export default function AdminUsers() {
     } catch { /**/ }
   }
 
-  const handleDelete = async (u) => {
-    if (!confirm(`Bạn có chắc muốn khóa tài khoản của ${u.fullName}?`)) return
-    try { await adminUsersApi.delete(u.userId); load() } catch { /**/ }
-  }
-
   const totalPages = Math.ceil(pagination.total / pagination.pageSize)
 
   return (
@@ -261,8 +256,8 @@ export default function AdminUsers() {
             >
               <option value="">Tất cả vai trò</option>
               <option value="1">Admin</option>
-              <option value="2">Khách hàng</option>
-              <option value="3">Staff</option>
+              <option value="2">Staff</option>
+              <option value="3">Khách hàng</option>
             </select>
             <select
               id="user-active-filter"

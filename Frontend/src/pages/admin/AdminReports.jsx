@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Download, RefreshCw, TrendingUp, ShoppingBag, DollarSign, CheckCircle } from 'lucide-react'
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  AreaChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend
 } from 'recharts'
 import { reportsApi } from '../../api/adminApi'
@@ -38,7 +38,7 @@ export default function AdminReports() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -55,9 +55,9 @@ export default function AdminReports() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [from, to, groupBy])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [from, to, groupBy])
 
   const chartData = (revenue?.points || []).map(p => ({
     name: p.period,

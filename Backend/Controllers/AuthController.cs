@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -116,9 +117,55 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }, "Dang xuat thanh cong."));
     }
 
+    [HttpPost("google-login")]
+    public async Task<IActionResult> GoogleLogin(GoogleLoginDto dto)
+    {
+        var settings = new GoogleJsonWebSignature.ValidationSettings();
+        var payload = await GoogleJsonWebSignature.ValidateAsync(dto.Credential, settings);
+
+        var email = payload.Email.ToLowerInvariant();
+        var user = await _context.Users.Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+
+        if (user == null)
+        {
+            var customerRoleId = await _context.Roles
+                .Where(x => x.RoleName == "Customer")
+                .Select(x => x.RoleId).FirstOrDefaultAsync();
+
+            user = new User
+            {
+                Email = email,
+                FullName = payload.Name,
+                AvatarUrl = payload.Picture,
+                GoogleId = payload.Subject,
+                RoleId = customerRoleId,
+            };
+            _context.Users.Add(user);
+        }
+        else
+        {
+            user.GoogleId ??= payload.Subject;
+            user.AvatarUrl ??= payload.Picture;
+        }
+
+        var accessToken = GenerateJwtToken(user);
+        var refreshToken = CreateRefreshToken(user.UserId);
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            accessToken,
+            refreshToken = refreshToken.Token,
+            user = ToUserDto(user, user.Role?.RoleName ?? "Customer")
+        }));
+    }
+
     private string GenerateJwtToken(User user)
     {
-        var roleName = user.Role?.RoleName ?? (user.RoleId == 1 ? "Admin" : user.RoleId == 2 ? "Staff" : "Customer");
+        // Role is always included via .Include(u => u.Role) in Login/Refresh calls
+        var roleName = user.Role?.RoleName ?? "Customer";
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),

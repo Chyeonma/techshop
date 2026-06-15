@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { authApi, clearAuthState, getAuthState, setAuthState } from '../api/client'
 
 const AuthContext = createContext(null)
@@ -9,6 +9,7 @@ function normalizeUser(user) {
   return {
     ...user,
     fullName: user.fullName || user.email,
+    roleName: user.roleName || user.role || user.Role,
   }
 }
 
@@ -67,6 +68,16 @@ export function AuthProvider({ children }) {
     }
   }, [saveSession])
 
+  const googleLogin = useCallback(async (credential) => {
+    try {
+      const session = await authApi.googleLogin(credential)
+      saveSession(session)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: err.message || 'Đăng nhập Google thất bại.' }
+    }
+  }, [saveSession])
+
   const logout = useCallback(async () => {
     const refreshToken = tokens?.refreshToken
     setUser(null)
@@ -92,6 +103,23 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
+  useEffect(() => {
+    function handleAuthChanged(e) {
+      if (e.detail.type === 'token-refreshed') {
+        const auth = getAuthState()
+        if (auth) {
+          setUser(normalizeUser(auth.user))
+          setTokens({ accessToken: auth.accessToken, refreshToken: auth.refreshToken })
+        }
+      } else if (e.detail.type === 'logout') {
+        setUser(null)
+        setTokens(null)
+      }
+    }
+    window.addEventListener('techshop-auth-changed', handleAuthChanged)
+    return () => window.removeEventListener('techshop-auth-changed', handleAuthChanged)
+  }, [])
+
   const value = useMemo(() => ({
     isOpen,
     mode,
@@ -102,6 +130,7 @@ export function AuthProvider({ children }) {
     close,
     login,
     register,
+    googleLogin,
     logout,
     updateUser,
   }), [isOpen, mode, user, tokens, openLogin, openRegister, close, login, register, logout, updateUser])

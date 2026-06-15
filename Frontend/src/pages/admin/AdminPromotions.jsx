@@ -10,9 +10,11 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('vi-VN')
 }
 
-function isActive(p) {
-  const now = Date.now()
-  return p.isActive && new Date(p.startsAt) <= now && new Date(p.endsAt) >= now
+function getStatus(p, now) {
+  if (!p.isActive) return 'ended'
+  if (new Date(p.startsAt) > now) return 'upcoming'
+  if (new Date(p.endsAt) < now) return 'ended'
+  return 'active'
 }
 
 // ─── Promotion Form Modal ────────────────────────────────────────────────────
@@ -203,6 +205,7 @@ export default function AdminPromotions() {
   const [activeFilter, setActiveFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(null)
+  const [now] = useState(() => Date.now())
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -218,7 +221,7 @@ export default function AdminPromotions() {
     finally { setLoading(false) }
   }, [activeFilter, pagination.page, pagination.pageSize])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [activeFilter, pagination.page, pagination.pageSize])
 
   const handleDelete = async (id) => {
     if (!confirm('Tắt khuyến mãi này?')) return
@@ -303,12 +306,12 @@ export default function AdminPromotions() {
                         <span className="admin-tag">{p.products?.length || 0} SP</span>
                       </td>
                       <td>
-                        {isActive(p)
-                          ? <span className="admin-badge admin-badge-success">Đang chạy</span>
-                          : p.isActive && new Date(p.startsAt) > Date.now()
-                            ? <span className="admin-badge admin-badge-info">Sắp diễn ra</span>
-                            : <span className="admin-badge admin-badge-gray">Đã kết thúc</span>
-                        }
+                        {(() => {
+                          const status = getStatus(p, now)
+                          if (status === 'active') return <span className="admin-badge admin-badge-success">Đang chạy</span>
+                          if (status === 'upcoming') return <span className="admin-badge admin-badge-info">Sắp diễn ra</span>
+                          return <span className="admin-badge admin-badge-gray">Đã kết thúc</span>
+                        })()}
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>

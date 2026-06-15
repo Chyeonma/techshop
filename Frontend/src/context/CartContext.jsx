@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { cartApi } from '../api/client'
 import { mapCart } from '../api/mappers'
 
@@ -13,6 +13,10 @@ export function CartProvider({ children }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // Ref để tránh stale closure khi handleAuthChanged dùng items
+  const itemsRef = useRef(items)
+  itemsRef.current = items
 
   const applyCart = useCallback((cart, nextSelected = null, fallbackSelected = false) => {
     setItems(prev => {
@@ -42,11 +46,17 @@ export function CartProvider({ children }) {
   useEffect(() => {
     async function handleAuthChanged(event) {
       if (event.detail?.type === 'login') {
-        const snapshot = items
-        try {
-          await Promise.all(snapshot.map(item => cartApi.addItem(item.variantId, item.quantity)))
-        } catch {
-          // If a guest cart item cannot sync, the user cart should still load.
+        const snapshot = itemsRef.current
+        if (snapshot.length > 0) {
+          try {
+            const serverCart = await cartApi.get()
+            const serverItems = Array.from(serverCart?.items || [])
+            const serverVariantIds = new Set(serverItems.map(i => i.variantId))
+            const newItems = snapshot.filter(item => !serverVariantIds.has(item.variantId))
+            await Promise.all(newItems.map(item => cartApi.addItem(item.variantId, item.quantity)))
+          } catch {
+            // ignore
+          }
         }
         await refresh(false)
         return
@@ -60,7 +70,7 @@ export function CartProvider({ children }) {
 
     window.addEventListener('techshop-auth-changed', handleAuthChanged)
     return () => window.removeEventListener('techshop-auth-changed', handleAuthChanged)
-  }, [items, refresh])
+  }, [refresh])
 
   const addToCart = useCallback(async (product, selected = true) => {
     if (!product.variantId) {

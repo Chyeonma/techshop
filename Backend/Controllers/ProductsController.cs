@@ -175,7 +175,12 @@ public class ProductsController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateProduct(Guid id, UpdateProductDto dto)
     {
-        var product = await _context.Products.FindAsync(id);
+        var product = await _context.Products
+            .Include(p => p.Images)
+            .Include(p => p.Specifications)
+            .Include(p => p.Variants).ThenInclude(v => v.Inventory)
+            .FirstOrDefaultAsync(p => p.ProductId == id);
+
         if (product == null)
         {
             return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "San pham khong ton tai."));
@@ -193,6 +198,70 @@ public class ProductsController : ControllerBase
         product.IsFeatured = dto.IsFeatured;
         product.IsActive = dto.IsActive;
         product.UpdatedAt = DateTime.UtcNow;
+
+        // Cập nhật images nếu có
+        if (dto.Images != null)
+        {
+            _context.ProductImages.RemoveRange(product.Images);
+            product.Images.Clear();
+            foreach (var image in dto.Images)
+            {
+                product.Images.Add(new ProductImage
+                {
+                    ProductId = id,
+                    ImageUrl = image.ImageUrl,
+                    AltText = image.AltText,
+                    SortOrder = image.SortOrder
+                });
+            }
+        }
+
+        // Cập nhật specifications nếu có
+        if (dto.Specifications != null)
+        {
+            _context.Specifications.RemoveRange(product.Specifications);
+            product.Specifications.Clear();
+            foreach (var spec in dto.Specifications)
+            {
+                _context.Specifications.Add(new Specification
+                {
+                    ProductId = id,
+                    SpecKey = spec.SpecKey,
+                    SpecValue = spec.SpecValue,
+                    SortOrder = spec.SortOrder
+                });
+            }
+        }
+
+        // Cập nhật variants nếu có
+        if (dto.Variants != null)
+        {
+            // Mark old variants as inactive instead of deleting (preserves inventory logs)
+            foreach (var oldVariant in product.Variants)
+            {
+                oldVariant.IsActive = false;
+                if (oldVariant.Inventory != null)
+                {
+                    oldVariant.Inventory.Quantity = 0;
+                }
+            }
+
+            foreach (var variant in dto.Variants)
+            {
+                product.Variants.Add(new ProductVariant
+                {
+                    ProductId = id,
+                    SKU = variant.SKU,
+                    Color = variant.Color,
+                    RAM = variant.RAM,
+                    Storage = variant.Storage,
+                    PriceOffset = variant.PriceOffset,
+                    IsActive = true,
+                    Inventory = new Inventory { Quantity = variant.Quantity }
+                });
+            }
+        }
+
         await _context.SaveChangesAsync();
 
         return Ok(ApiResponse<object>.Ok(new { product.ProductId }, "Da cap nhat san pham."));
@@ -215,8 +284,17 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { product.ProductId }, "Da an san pham."));
     }
 
+    private static readonly HashSet<string> _allowedExtensions = new(StringComparer.OrdinalIgnoreCase)
+        { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg" };
+
+    private static readonly HashSet<string> _allowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
+        { "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml" };
+
+    private const long _maxFileSize = 5 * 1024 * 1024; // 5 MB
+
     [Authorize(Roles = "Admin,Staff")]
     [HttpPost("{id:guid}/images")]
+    [RequestSizeLimit(_maxFileSize)]
     public async Task<IActionResult> UploadImage(Guid id, IFormFile file, [FromForm] string? altText, [FromForm] int sortOrder = 0)
     {
         var product = await _context.Products.FindAsync(id);
@@ -225,12 +303,28 @@ public class ProductsController : ControllerBase
             return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "San pham khong ton tai."));
         }
 
-        if (file.Length == 0)
+        if (file == null || file.Length == 0)
         {
-            return BadRequest(ApiResponse<object>.Fail("EMPTY_FILE", "File anh khong hop le."));
+            return BadRequest(ApiResponse<object>.Fail("INVALID_FILE", "File anh khong hop le."));
+        }
+
+        if (file.Length > _maxFileSize)
+        {
+            return BadRequest(ApiResponse<object>.Fail("FILE_TOO_LARGE", $"Kich thuoc file toi da la {_maxFileSize / (1024 * 1024)}MB."));
         }
 
         var extension = Path.GetExtension(file.FileName);
+        if (string.IsNullOrEmpty(extension) || !_allowedExtensions.Contains(extension))
+        {
+            return BadRequest(ApiResponse<object>.Fail("INVALID_EXTENSION", $"Dinh dang file khong ho tro. Cho phep: {string.Join(", ", _allowedExtensions)}"));
+        }
+
+        var contentType = file.ContentType;
+        if (!_allowedContentTypes.Contains(contentType))
+        {
+            return BadRequest(ApiResponse<object>.Fail("INVALID_CONTENT_TYPE", $"Dinh dang file khong ho tro."));
+        }
+
         var fileName = $"{Guid.NewGuid():N}{extension}";
         var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
         Directory.CreateDirectory(imagesDir);

@@ -17,6 +17,44 @@ export class ApiError extends Error {
   }
 }
 
+const REFRESH_SUBSCRIBERS = []
+let REFRESHING = false
+let REFRESH_PROMISE = null
+
+function onRefreshed(token) {
+  REFRESH_SUBSCRIBERS.forEach(cb => cb(token))
+  REFRESH_SUBSCRIBERS.length = 0
+}
+
+async function _doRefresh() {
+  const auth = getAuthState()
+  if (!auth?.refreshToken) throw new Error('No refresh token')
+
+  const res = await fetch(`${API_BASE_URL}/api/Auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken: auth.refreshToken }),
+  })
+
+  const text = await res.text()
+  const data = text ? JSON.parse(text) : null
+
+  if (!res.ok) {
+    clearAuthState()
+    window.dispatchEvent(new CustomEvent('techshop-auth-changed', { detail: { type: 'logout' } }))
+    throw new Error(data?.message || 'Refresh token hết hạn.')
+  }
+
+  const newAuth = {
+    accessToken: data.data.accessToken,
+    refreshToken: data.data.refreshToken,
+    user: data.data.user,
+  }
+  setAuthState(newAuth)
+  window.dispatchEvent(new CustomEvent('techshop-auth-changed', { detail: { type: 'token-refreshed', user: data.data.user } }))
+  return data.data.accessToken
+}
+
 export function getAuthState() {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY)
@@ -92,6 +130,38 @@ async function apiRequest(path, options = {}) {
   const payload = text ? JSON.parse(text) : null
 
   if (!response.ok) {
+    if (response.status === 401 && auth?.refreshToken && !path.toLowerCase().includes('/auth/')) {
+      try {
+        if (!REFRESHING) {
+          REFRESHING = true
+          REFRESH_PROMISE = _doRefresh()
+            .then(token => { onRefreshed(token); return token })
+            .catch(err => { onRefreshed(null); throw err })
+            .finally(() => { REFRESHING = false; REFRESH_PROMISE = null })
+        }
+        const newToken = await REFRESH_PROMISE
+
+        headers.set('Authorization', `Bearer ${newToken}`)
+        const retryRes = await fetch(`${API_BASE_URL}${path}`, fetchOptions)
+        const retrySessionId = retryRes.headers.get('X-Session-Id')
+        if (retrySessionId) setSessionId(retrySessionId)
+        const retryText = await retryRes.text()
+        const retryPayload = retryText ? JSON.parse(retryText) : null
+
+        if (!retryRes.ok) {
+          throw new ApiError(
+            retryPayload?.message || retryPayload?.error || 'Không thể kết nối máy chủ.',
+            retryRes.status,
+            retryPayload,
+          )
+        }
+
+        return retryPayload
+      } catch {
+        // Refresh + retry thất bại → throw lỗi gốc
+      }
+    }
+
     const message = payload?.message || payload?.error || 'Không thể kết nối máy chủ.'
     throw new ApiError(message, response.status, payload)
   }
@@ -121,6 +191,14 @@ export const authApi = {
     const response = await apiRequest('/api/Auth/logout', {
       method: 'POST',
       body: { refreshToken },
+    })
+    return response.data
+  },
+
+  async googleLogin(credential) {
+    const response = await apiRequest('/api/Auth/google-login', {
+      method: 'POST',
+      body: { credential },
     })
     return response.data
   },
