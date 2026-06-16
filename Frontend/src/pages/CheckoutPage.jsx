@@ -24,8 +24,7 @@ function CheckoutPage() {
     subtotal,
     originalTotal,
     discount,
-    keepOnlySelectedForCheckout,
-    clearCartState,
+    refresh,
   } = useCart()
   const { user, openLogin } = useAuth()
 
@@ -57,27 +56,36 @@ function CheckoutPage() {
 
     try {
       setPlacing(true)
-      await keepOnlySelectedForCheckout()
+
+      // Truyền selectedCartItemIds để backend chỉ xử lý các item được chọn
+      // Các item không được chọn sẽ được GIỮ LẠI trong cart
+      const selectedCartItemIds = selectedItems.map(item => item.id)
+
       const order = await ordersApi.create({
         receiverName: customer.name.trim(),
         phone: customer.phone.trim(),
         shippingAddress: address.trim(),
         note: delivery === 'home' ? null : delivery,
+        selectedCartItemIds,
       })
 
       if (payment === 'momo') {
+        // Đồng bộ local cart với server (backend đã xóa items đã checkout)
+        await refresh()
         const gateway = await paymentsApi.createMomo(order.orderId, `${window.location.origin}/tai-khoan`)
         window.location.href = gateway.paymentUrl
         return
       }
 
       if (payment === 'atm' || payment === 'intl') {
+        await refresh()
         const gateway = await paymentsApi.createVnPay(order.orderId, `${window.location.origin}/tai-khoan`)
         window.location.href = gateway.paymentUrl
         return
       }
 
-      clearCartState()
+      // COD: đồng bộ local cart với server (backend đã giữ lại items không được chọn)
+      await refresh()
       alert('Đặt hàng thành công!')
       navigate('/tai-khoan')
     } catch (err) {

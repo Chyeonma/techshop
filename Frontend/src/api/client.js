@@ -267,10 +267,16 @@ export const cartApi = {
 }
 
 export const ordersApi = {
-  async create(order) {
+  async create({ receiverName, phone, shippingAddress, note, selectedCartItemIds }) {
     const response = await apiRequest('/api/Orders', {
       method: 'POST',
-      body: order,
+      body: {
+        receiverName,
+        phone,
+        shippingAddress,
+        note,
+        selectedCartItemIds,
+      },
     })
     return response.data
   },

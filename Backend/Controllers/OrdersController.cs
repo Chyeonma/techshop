@@ -39,6 +39,17 @@ public class OrdersController : ControllerBase
             return BadRequest(ApiResponse<object>.Fail("EMPTY_CART", "Gio hang dang trong."));
         }
 
+        // Nếu có selectedCartItemIds, chỉ xử lý các item được chọn
+        var itemsToProcess = cart.Items.AsEnumerable();
+        if (dto.SelectedCartItemIds is { Count: > 0 } selectedIds)
+        {
+            itemsToProcess = cart.Items.Where(i => selectedIds.Contains(i.CartItemId)).ToList();
+            if (itemsToProcess.Count() == 0)
+            {
+                return BadRequest(ApiResponse<object>.Fail("INVALID_SELECTION", "Khong co san pham nao duoc chon de dat hang."));
+            }
+        }
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         var order = new Order
@@ -52,7 +63,7 @@ public class OrdersController : ControllerBase
             ShippingFee = 0
         };
 
-        foreach (var item in cart.Items)
+        foreach (var item in itemsToProcess)
         {
             if (item.Variant?.Product == null || item.Variant.Inventory == null)
             {
@@ -99,8 +110,17 @@ public class OrdersController : ControllerBase
         }
 
         _context.Orders.Add(order);
-        _context.CartItems.RemoveRange(cart.Items);
-        cart.CouponId = null;
+
+        // Chỉ xóa các item đã được checkout, giữ lại các item không được chọn
+        var itemsToRemove = itemsToProcess.ToList();
+        _context.CartItems.RemoveRange(itemsToRemove);
+
+        // Nếu không còn item nào trong cart thì bỏ coupon
+        var remainingItems = cart.Items.Except(itemsToRemove).ToList();
+        if (remainingItems.Count == 0)
+        {
+            cart.CouponId = null;
+        }
         cart.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();

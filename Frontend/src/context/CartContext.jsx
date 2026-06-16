@@ -123,13 +123,6 @@ export function CartProvider({ children }) {
     await refresh(false)
   }, [items, refresh])
 
-  const keepOnlySelectedForCheckout = useCallback(async () => {
-    const unselected = items.filter(item => !item.selected)
-    if (unselected.length === 0) return
-    await Promise.all(unselected.map(item => cartApi.deleteItem(item.id)))
-    await refresh(true)
-  }, [items, refresh])
-
   const clearCartState = useCallback(() => {
     setItems([])
   }, [])
@@ -159,7 +152,6 @@ export function CartProvider({ children }) {
     toggleSelected,
     setAllSelected,
     removeSelected,
-    keepOnlySelectedForCheckout,
     clearCartState,
   }), [
     items,
@@ -179,7 +171,6 @@ export function CartProvider({ children }) {
     toggleSelected,
     setAllSelected,
     removeSelected,
-    keepOnlySelectedForCheckout,
     clearCartState,
   ])
 
