@@ -40,16 +40,19 @@ public class CartController : ControllerBase
             return NotFound(ApiResponse<object>.Fail("VARIANT_NOT_FOUND", "Bien the san pham khong ton tai."));
         }
 
-        if ((variant.Inventory?.Quantity ?? 0) < dto.Quantity)
+        var cart = await GetOrCreateCart();
+        var existingItem = cart.Items.FirstOrDefault(i => i.VariantId == dto.VariantId);
+        var currentQuantity = existingItem != null ? existingItem.Quantity : 0;
+        var totalDesiredQuantity = currentQuantity + dto.Quantity;
+
+        if ((variant.Inventory?.Quantity ?? 0) < totalDesiredQuantity)
         {
             return BadRequest(ApiResponse<object>.Fail("OUT_OF_STOCK", "So luong ton kho khong du."));
         }
 
-        var cart = await GetOrCreateCart();
-        var existingItem = cart.Items.FirstOrDefault(i => i.VariantId == dto.VariantId);
         if (existingItem != null)
         {
-            existingItem.Quantity += dto.Quantity;
+            existingItem.Quantity = totalDesiredQuantity;
         }
         else
         {
