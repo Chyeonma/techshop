@@ -87,6 +87,10 @@ public class CartController : ControllerBase
         }
         else
         {
+            if ((item.Variant?.Inventory?.Quantity ?? 0) < dto.Quantity)
+            {
+                return BadRequest(ApiResponse<object>.Fail("OUT_OF_STOCK", "So luong ton kho khong du."));
+            }
             item.Quantity = dto.Quantity;
         }
 
