@@ -101,17 +101,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseExceptionMiddleware();
+app.UseExceptionMiddleware(); //Trả về json khi có lỗi xảy ra, thay vì trang lỗi HTML mặc định của ASP.NET Core
 
-app.UseForwardedHeaders();
-if (!app.Environment.IsProduction())
+app.UseForwardedHeaders();    //Để nhận đúng IP của client khi ứng dụng được reverse proxy bởi Nginx hoặc Apache
+if (!app.Environment.IsProduction()) //Chỉ bật HTTPS khi không phải môi trường production, vì trong môi trường production, HTTPS sẽ được Nginx hoặc Apache xử lý
 {
     app.UseHttpsRedirection();
 }
-app.UseCors("Vite");
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-app.MapControllers();
+app.UseCors("Vite"); //Cho phép truy cập từ frontend Vite
+app.UseAuthentication(); //Xác thực JWT
+app.UseAuthorization();  //Xác thực quyền truy cập
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })); //Endpoint kiểm tra sức khỏe của ứng dụng
+app.MapControllers(); //Map các controller
 
 app.Run();
