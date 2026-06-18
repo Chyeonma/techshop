@@ -165,7 +165,8 @@
 
 .product-section-nav.visible.disabled {
   opacity: 0.28;
-  pointer-events: none;
+  pointer-events: auto;  /* block clicks — button is disabled via HTML attr so no action fires */
+  cursor: default;
 }
 
 .product-section-nav-prev {
