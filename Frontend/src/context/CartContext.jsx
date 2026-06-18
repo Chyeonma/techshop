@@ -16,7 +16,10 @@ export function CartProvider({ children }) {
 
   // Ref để tránh stale closure khi handleAuthChanged dùng items
   const itemsRef = useRef(items)
-  itemsRef.current = items
+
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
 
   const applyCart = useCallback((cart, nextSelected = null, fallbackSelected = false) => {
     setItems(prev => {
@@ -104,7 +107,11 @@ export function CartProvider({ children }) {
   }, [applyCart])
 
   const updateQuantity = useCallback(async (id, quantity) => {
-    if (quantity < 1) return
+    if (quantity < 1) {
+      const cart = await cartApi.deleteItem(id)
+      applyCart(cart)
+      return
+    }
     const cart = await cartApi.updateItem(id, quantity)
     applyCart(cart)
   }, [applyCart])

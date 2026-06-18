@@ -59,6 +59,7 @@ function UpdateStatusModal({ order, onClose, onSaved }) {
               <div><strong>Khách hàng:</strong> {order.customer?.fullName || order.customer?.email || 'Khách'}</div>
               <div><strong>Tổng tiền:</strong> {formatCurrency(order.grandTotal)}</div>
               <div><strong>Ngày đặt:</strong> {new Date(order.createdAt).toLocaleString('vi-VN')}</div>
+              {order.cancelReason && <div><strong>Lý do hủy:</strong> {order.cancelReason}</div>}
             </div>
 
             <div className="admin-form-group">

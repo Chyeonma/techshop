@@ -1,5 +1,5 @@
 import './CheckoutPayment.css'
-import './CheckoutDelivery.css'  // reuse .checkout-radio styles
+import './CheckoutDelivery.css'
 
 const PAYMENT_METHODS = [
   {
@@ -9,17 +9,17 @@ const PAYMENT_METHODS = [
   },
   {
     id:    'qr',
-    label: 'Chuyển khoản ngân hàng (QR Code)',
+    label: 'Chuyển khoản ngân hàng bằng QR Code',
     icon:  { bg: '#1a56db', text: 'QR' },
   },
   {
     id:    'atm',
-    label: 'Thẻ ATM nội địa (qua VNPAY)',
+    label: 'Thẻ ATM nội địa qua VNPAY',
     icon:  { bg: '#0066cc', text: 'ATM' },
   },
   {
     id:    'intl',
-    label: 'Thẻ Quốc tế Visa, Master, JCB, AMEX, Apple Pay, Google Pay, Samsung Pay',
+    label: 'Thẻ quốc tế Visa, Master, JCB, AMEX, Apple Pay, Google Pay, Samsung Pay',
     icon:  { bg: '#374151', text: 'VISA' },
   },
   {
@@ -34,13 +34,6 @@ const PAYMENT_METHODS = [
   },
 ]
 
-/**
- * CheckoutPayment
- *
- * Props:
- *   method   {string}   — selected payment method id
- *   onChange {function} — (id) => void
- */
 function CheckoutPayment({ method, onChange }) {
   return (
     <div className="checkout-card">
