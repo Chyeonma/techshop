@@ -1,3 +1,5 @@
+import { API_BASE_URL } from './client'
+
 function fallbackImage(name) {
   return `https://placehold.co/160x160/f4f4f5/111827?text=${encodeURIComponent(name || 'TechShop')}`
 }
@@ -38,6 +40,9 @@ function normalizeImage(thumbnailUrl, name) {
   if (!thumbnailUrl) return fallbackImage(name)
   if (thumbnailUrl.startsWith('http://') || thumbnailUrl.startsWith('https://')) {
     return thumbnailUrl
+  }
+  if (thumbnailUrl.startsWith('/')) {
+    return `${API_BASE_URL}${thumbnailUrl}`
   }
   return fallbackImage(name)
 }

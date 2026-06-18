@@ -22,11 +22,59 @@ function ProductFormModal({ product, categories, onClose, onSaved }) {
     tags: product?.tags || '',
     isFeatured: product?.isFeatured || false,
     isActive: product?.isActive ?? true,
+    specifications: product?.specifications || [],
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const handleChange = (key, value) => setForm(f => ({ ...f, [key]: value }))
+
+  const handleCategoryChange = (categoryId) => {
+    handleChange('categoryId', categoryId)
+    if (!isEdit && categoryId) {
+      const cat = categories.find(c => c.categoryId.toString() === categoryId.toString())
+      if (cat) {
+        let defaultSpecs = []
+        if (cat.slug === 'phone') {
+          defaultSpecs = [
+            { specKey: 'Màn hình', specValue: '' },
+            { specKey: 'Hệ điều hành', specValue: '' },
+            { specKey: 'CPU', specValue: '' },
+            { specKey: 'RAM', specValue: '' },
+            { specKey: 'Bộ nhớ trong', specValue: '' },
+            { specKey: 'Camera', specValue: '' },
+            { specKey: 'Pin', specValue: '' }
+          ]
+        } else if (cat.slug === 'laptop') {
+          defaultSpecs = [
+            { specKey: 'Màn hình', specValue: '' },
+            { specKey: 'CPU', specValue: '' },
+            { specKey: 'RAM', specValue: '' },
+            { specKey: 'Ổ cứng', specValue: '' },
+            { specKey: 'Card đồ họa', specValue: '' },
+            { specKey: 'Hệ điều hành', specValue: '' }
+          ]
+        }
+        handleChange('specifications', defaultSpecs)
+      }
+    }
+  }
+
+  const handleSpecChange = (index, key, val) => {
+    const newSpecs = [...form.specifications]
+    newSpecs[index][key] = val
+    handleChange('specifications', newSpecs)
+  }
+
+  const addSpec = () => {
+    handleChange('specifications', [...form.specifications, { specKey: '', specValue: '' }])
+  }
+
+  const removeSpec = (index) => {
+    const newSpecs = [...form.specifications]
+    newSpecs.splice(index, 1)
+    handleChange('specifications', newSpecs)
+  }
 
   const autoSlug = (name) =>
     name.toLowerCase()
@@ -50,7 +98,7 @@ function ProductFormModal({ product, categories, onClose, onSaved }) {
         basePrice: Number(form.basePrice),
         salePrice: form.salePrice ? Number(form.salePrice) : null,
         images: [],
-        specifications: [],
+        specifications: form.specifications.filter(s => s.specKey.trim() !== '').map((s, idx) => ({ ...s, sortOrder: idx })),
         variants: [],
       }
       if (isEdit) {
@@ -73,7 +121,7 @@ function ProductFormModal({ product, categories, onClose, onSaved }) {
           <span className="admin-modal-title">{isEdit ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}</span>
           <button className="admin-modal-close" onClick={onClose}><X size={16} /></button>
         </div>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <div className="admin-modal-body">
             {error && <div className="admin-alert admin-alert-danger">{error}</div>}
 
@@ -116,7 +164,7 @@ function ProductFormModal({ product, categories, onClose, onSaved }) {
                 <select
                   className="admin-form-select"
                   value={form.categoryId}
-                  onChange={e => handleChange('categoryId', e.target.value)}
+                  onChange={e => handleCategoryChange(e.target.value)}
                   required
                 >
                   <option value="">— Chọn danh mục —</option>
@@ -165,6 +213,42 @@ function ProductFormModal({ product, categories, onClose, onSaved }) {
                 onChange={e => handleChange('description', e.target.value)}
                 rows={3}
               />
+            </div>
+
+            <div className="admin-form-group" style={{ border: '1px solid #e2e8f0', padding: 16, borderRadius: 8, background: '#f8fafc' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <label className="admin-form-label" style={{ marginBottom: 0, fontWeight: 600 }}>Thông số kỹ thuật</label>
+                <button type="button" className="admin-btn admin-btn-secondary" style={{ padding: '6px 12px', fontSize: 13 }} onClick={addSpec}>
+                  <Plus size={14} style={{ marginRight: 4 }} /> Thêm thông số
+                </button>
+              </div>
+              {form.specifications.length === 0 ? (
+                <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>Chưa có thông số nào. Hãy chọn danh mục hoặc tự thêm.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 250, overflowY: 'auto', paddingRight: 4 }}>
+                  {form.specifications.map((spec, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <input
+                        className="admin-form-input"
+                        style={{ flex: 1 }}
+                        placeholder="Tên (VD: CPU)"
+                        value={spec.specKey}
+                        onChange={e => handleSpecChange(idx, 'specKey', e.target.value)}
+                      />
+                      <input
+                        className="admin-form-input"
+                        style={{ flex: 2 }}
+                        placeholder="Giá trị (VD: Apple M3)"
+                        value={spec.specValue}
+                        onChange={e => handleSpecChange(idx, 'specValue', e.target.value)}
+                      />
+                      <button type="button" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ color: '#dc2626', marginTop: 4 }} onClick={() => removeSpec(idx)}>
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="admin-form-group">

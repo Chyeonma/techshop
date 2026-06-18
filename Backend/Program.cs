@@ -7,6 +7,7 @@ using Microsoft.OpenApi;
 using TechShop.Backend.Data;
 using TechShop.Backend.Middleware;
 using TechShop.Backend.Services;
+using TechShop.Backend.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -104,6 +105,7 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionMiddleware(); //Trả về json khi có lỗi xảy ra, thay vì trang lỗi HTML mặc định của ASP.NET Core
 
 app.UseForwardedHeaders();    //Để nhận đúng IP của client khi ứng dụng được reverse proxy bởi Nginx hoặc Apache
+app.UseStaticFiles();         //Cho phép phục vụ các file tĩnh trong wwwroot (ảnh sản phẩm)
 if (!app.Environment.IsProduction()) //Chỉ bật HTTPS khi không phải môi trường production, vì trong môi trường production, HTTPS sẽ được Nginx hoặc Apache xử lý
 {
     app.UseHttpsRedirection();
