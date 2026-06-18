@@ -20,3 +20,7 @@ public record LogoutDto(
 
 public record GoogleLoginDto(
     [Required] string Credential);
+
+public record ChangePasswordDto(
+    [Required] string CurrentPassword,
+    [Required, MinLength(6), MaxLength(100)] string NewPassword);

@@ -1,10 +1,11 @@
-import { User, ShoppingBag, LogOut } from 'lucide-react'
+import { User, ShoppingBag, LogOut, KeyRound } from 'lucide-react'
 import './AccountSidebar.css'
 
 const NAV_ITEMS = [
-  { id: 'info',   label: 'Thông tin tài khoản', Icon: User       },
-  { id: 'orders', label: 'Quản lý đơn hàng',    Icon: ShoppingBag},
-  { id: 'logout', label: 'Đăng xuất',            Icon: LogOut     },
+  { id: 'info',     label: 'Thông tin tài khoản', Icon: User       },
+  { id: 'orders',   label: 'Quản lý đơn hàng',    Icon: ShoppingBag},
+  { id: 'password', label: 'Đổi mật khẩu',        Icon: KeyRound   },
+  { id: 'logout',   label: 'Đăng xuất',           Icon: LogOut     },
 ]
 
 /**

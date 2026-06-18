@@ -4,13 +4,15 @@ import { useAuth } from '../context/AuthContext'
 import AccountSidebar from '../components/Account/AccountSidebar'
 import AccountInfo    from '../components/Account/AccountInfo'
 import AccountOrders  from '../components/Account/AccountOrders'
+import AccountPassword from '../components/Account/AccountPassword'
 import AccountLogout  from '../components/Account/AccountLogout'
 import './AccountPage.css'
 
 const CONTENT = {
-  info:   <AccountInfo   />,
-  orders: <AccountOrders />,
-  logout: <AccountLogout />,
+  info:     <AccountInfo   />,
+  orders:   <AccountOrders />,
+  password: <AccountPassword />,
+  logout:   <AccountLogout />,
 }
 
 /**

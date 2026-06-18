@@ -202,6 +202,14 @@ export const authApi = {
     })
     return response.data
   },
+
+  async changePassword(currentPassword, newPassword) {
+    const response = await apiRequest('/api/Auth/change-password', {
+      method: 'POST',
+      body: { currentPassword, newPassword },
+    })
+    return response
+  },
 }
 
 export const productsApi = {

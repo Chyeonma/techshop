@@ -201,6 +201,43 @@ public class AuthController : ControllerBase
         }));
     }
 
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
+    {
+        if (dto.CurrentPassword == dto.NewPassword)
+        {
+            return BadRequest(ApiResponse<object>.Fail("SAME_PASSWORD", "Mat khau moi khong duoc giong mat khau hien tai."));
+        }
+
+        var userIdStr = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return NotFound(ApiResponse<object>.Fail("USER_NOT_FOUND", "Nguoi dung khong ton tai."));
+
+        if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+        {
+            return BadRequest(ApiResponse<object>.Fail("INVALID_PASSWORD", "Mat khau hien tai khong dung."));
+        }
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        
+        var allUserTokens = await _context.RefreshTokens
+            .Where(t => t.UserId == userId && !t.IsRevoked)
+            .ToListAsync();
+        foreach (var t in allUserTokens)
+        {
+            t.IsRevoked = true;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(ApiResponse<object>.Ok(new { }, "Doi mat khau thanh cong. Vui long dang nhap lai."));
+    }
+
     private string GenerateJwtToken(User user)
     {
         // Role is always included via .Include(u => u.Role) in Login/Refresh calls
