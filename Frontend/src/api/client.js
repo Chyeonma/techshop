@@ -210,6 +210,14 @@ export const authApi = {
     })
     return response
   },
+
+  async forgotPassword(email) {
+    const response = await apiRequest('/api/Auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+    })
+    return response
+  },
 }
 
 export const productsApi = {

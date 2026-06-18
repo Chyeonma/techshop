@@ -276,6 +276,56 @@ public class AuthController : ControllerBase
         };
     }
 
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+    {
+        var email = dto.Email.Trim().ToLowerInvariant();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+
+        if (user != null)
+        {
+            var newPassword = Guid.NewGuid().ToString("N").Substring(0, 8);
+
+            try
+            {
+                var smtpClient = new System.Net.Mail.SmtpClient(_configuration["Email:Host"])
+                {
+                    Port = int.Parse(_configuration["Email:Port"] ?? "587"),
+                    Credentials = new System.Net.NetworkCredential(_configuration["Email:Username"], _configuration["Email:Password"]),
+                    EnableSsl = true,
+                };
+
+                var mailMessage = new System.Net.Mail.MailMessage
+                {
+                    From = new System.Net.Mail.MailAddress(_configuration["Email:Username"]!),
+                    Subject = "Mật khẩu mới của bạn - TechShop",
+                    Body = $"Xin chào {user.FullName},\n\nMật khẩu của bạn đã được reset tự động.\nMật khẩu mới của bạn là: {newPassword}\n\nVui lòng đăng nhập và ĐỔI LẠI MẬT KHẨU NGAY LẬP TỨC để đảm bảo an toàn.\n\nTrân trọng.",
+                    IsBodyHtml = false,
+                };
+                mailMessage.To.Add(email);
+
+                await smtpClient.SendMailAsync(mailMessage);
+
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+                var allUserTokens = await _context.RefreshTokens
+                    .Where(t => t.UserId == user.UserId && !t.IsRevoked)
+                    .ToListAsync();
+                foreach (var t in allUserTokens)
+                {
+                    t.IsRevoked = true;
+                }
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, ApiResponse<object>.Fail("EMAIL_SEND_FAILED", "He thong dang loi gui mail, vui long thu lai sau."));
+            }
+        }
+
+        return Ok(ApiResponse<object>.Ok(new { }, "Neu email hop le, mat khau moi da duoc gui. Vui long kiem tra hom thu."));
+    }
+
     private static object ToUserDto(User user, string roleName) => new
     {
         user.UserId,

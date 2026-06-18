@@ -24,3 +24,6 @@ public record GoogleLoginDto(
 public record ChangePasswordDto(
     [Required] string CurrentPassword,
     [Required, MinLength(6), MaxLength(100)] string NewPassword);
+
+public record ForgotPasswordDto(
+    [Required, EmailAddress] string Email);
