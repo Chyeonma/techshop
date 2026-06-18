@@ -34,6 +34,16 @@ public class PaymentsController : ControllerBase
     public async Task<IActionResult> CreateMomoPayment(CreatePaymentRequestDto dto)
         => await CreateGatewayPayment(dto, "Momo");
 
+    [Authorize]
+    [HttpPost("qr/create")]
+    public async Task<IActionResult> CreateQrPayment(CreatePaymentRequestDto dto)
+        => await CreateGatewayPayment(dto, "QR");
+
+    [Authorize]
+    [HttpPost("zalopay/create")]
+    public async Task<IActionResult> CreateZaloPayPayment(CreatePaymentRequestDto dto)
+        => await CreateGatewayPayment(dto, "ZaloPay");
+
     [HttpPost("vnpay/callback")]
     public async Task<IActionResult> VnPayCallback(PaymentCallbackDto dto)
         => await HandleCallback(dto, "VNPay");
@@ -41,6 +51,14 @@ public class PaymentsController : ControllerBase
     [HttpPost("momo/callback")]
     public async Task<IActionResult> MomoCallback(PaymentCallbackDto dto)
         => await HandleCallback(dto, "Momo");
+
+    [HttpPost("qr/callback")]
+    public async Task<IActionResult> QrCallback(PaymentCallbackDto dto)
+        => await HandleCallback(dto, "QR");
+
+    [HttpPost("zalopay/callback")]
+    public async Task<IActionResult> ZaloPayCallback(PaymentCallbackDto dto)
+        => await HandleCallback(dto, "ZaloPay");
 
     private async Task<IActionResult> CreateGatewayPayment(CreatePaymentRequestDto dto, string method)
     {

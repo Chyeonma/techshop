@@ -283,7 +283,7 @@ export const cartApi = {
 }
 
 export const ordersApi = {
-  async create({ receiverName, phone, shippingAddress, note, selectedCartItemIds }) {
+  async create({ receiverName, phone, shippingAddress, note, addressId, selectedCartItemIds }) {
     const response = await apiRequest('/api/Orders', {
       method: 'POST',
       body: {
@@ -291,6 +291,7 @@ export const ordersApi = {
         phone,
         shippingAddress,
         note,
+        addressId,
         selectedCartItemIds,
       },
     })
@@ -300,6 +301,27 @@ export const ordersApi = {
   async list() {
     const response = await apiRequest('/api/Orders')
     return response.data || []
+  },
+
+  async detail(orderId) {
+    const response = await apiRequest(`/api/Orders/${orderId}`)
+    return response.data
+  },
+
+  async updateAddress(orderId, { receiverName, phone, shippingAddress }) {
+    const response = await apiRequest(`/api/Orders/${orderId}/address`, {
+      method: 'PATCH',
+      body: { receiverName, phone, shippingAddress },
+    })
+    return response.data
+  },
+
+  async cancel(orderId, { reason, note } = {}) {
+    const response = await apiRequest(`/api/Orders/${orderId}/cancel`, {
+      method: 'PATCH',
+      body: { reason, note },
+    })
+    return response.data
   },
 }
 
@@ -316,6 +338,72 @@ export const paymentsApi = {
     const response = await apiRequest('/api/Payments/momo/create', {
       method: 'POST',
       body: { orderId, returnUrl },
+    })
+    return response.data
+  },
+
+  async createQr(orderId, returnUrl) {
+    const response = await apiRequest('/api/Payments/qr/create', {
+      method: 'POST',
+      body: { orderId, returnUrl },
+    })
+    return response.data
+  },
+
+  async createZaloPay(orderId, returnUrl) {
+    const response = await apiRequest('/api/Payments/zalopay/create', {
+      method: 'POST',
+      body: { orderId, returnUrl },
+    })
+    return response.data
+  },
+}
+
+export const userApi = {
+  async getMe() {
+    const response = await apiRequest('/api/Users/me')
+    return response.data
+  },
+
+  async updateMe({ fullName, phone }) {
+    const response = await apiRequest('/api/Users/me', {
+      method: 'PUT',
+      body: { fullName, phone },
+    })
+    return response.data
+  },
+
+  async listAddresses() {
+    const response = await apiRequest('/api/Users/me/addresses')
+    return response.data || []
+  },
+
+  async createAddress(address) {
+    const response = await apiRequest('/api/Users/me/addresses', {
+      method: 'POST',
+      body: address,
+    })
+    return response.data
+  },
+
+  async updateAddress(addressId, address) {
+    const response = await apiRequest(`/api/Users/me/addresses/${addressId}`, {
+      method: 'PUT',
+      body: address,
+    })
+    return response.data
+  },
+
+  async deleteAddress(addressId) {
+    const response = await apiRequest(`/api/Users/me/addresses/${addressId}`, {
+      method: 'DELETE',
+    })
+    return response.data
+  },
+
+  async setDefaultAddress(addressId) {
+    const response = await apiRequest(`/api/Users/me/addresses/${addressId}/default`, {
+      method: 'PATCH',
     })
     return response.data
   },

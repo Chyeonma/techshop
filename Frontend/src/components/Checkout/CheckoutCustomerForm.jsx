@@ -1,10 +1,3 @@
-/**
- * CheckoutCustomerForm
- *
- * Props:
- *   value    {object}   — { name, phone, email }
- *   onChange {function} — (field, value) => void
- */
 function CheckoutCustomerForm({ value, onChange }) {
   return (
     <div className="checkout-card">
@@ -35,7 +28,7 @@ function CheckoutCustomerForm({ value, onChange }) {
           id="checkout-email"
           className="checkout-input"
           type="email"
-          placeholder="Email (Không bắt buộc)"
+          placeholder="Email (không bắt buộc)"
           value={value.email}
           onChange={e => onChange('email', e.target.value)}
           autoComplete="email"

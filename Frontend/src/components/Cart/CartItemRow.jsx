@@ -67,7 +67,6 @@ function CartItemRow({ item }) {
           <button
             className="cart-item-qty-btn"
             onClick={() => updateQuantity(item.id, item.quantity - 1)}
-            disabled={item.quantity <= 1}
             aria-label="Giảm số lượng"
             id={`cart-qty-dec-${item.id}`}
           >

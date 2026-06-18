@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
-import { ordersApi, paymentsApi } from '../api/client'
+import { ordersApi, paymentsApi, userApi } from '../api/client'
 import CheckoutItemList     from '../components/Checkout/CheckoutItemList'
 import CheckoutCustomerForm from '../components/Checkout/CheckoutCustomerForm'
 import CheckoutDelivery     from '../components/Checkout/CheckoutDelivery'
@@ -11,12 +11,6 @@ import CheckoutPayment      from '../components/Checkout/CheckoutPayment'
 import CheckoutSummary      from '../components/Checkout/CheckoutSummary'
 import './CheckoutPage.css'
 
-/**
- * CheckoutPage — /thanh-toan
- *
- * Displays the full checkout flow for all currently-selected cart items.
- * Redirects to /gio-hang if there are no selected items to check out.
- */
 function CheckoutPage() {
   const navigate = useNavigate()
   const {
@@ -26,16 +20,105 @@ function CheckoutPage() {
     discount,
     refresh,
   } = useCart()
-  const { user, openLogin } = useAuth()
+  const { user, openLogin, updateUser } = useAuth()
 
-  const [customer, setCustomer] = useState({ name: '', phone: '', email: '' })
+  const [customer, setCustomer] = useState(() => ({
+    name: user?.fullName || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
+  }))
   const [delivery, setDelivery] = useState('home')
   const [address,  setAddress ] = useState('')
+  const [addresses, setAddresses] = useState([])
+  const [selectedAddressId, setSelectedAddressId] = useState(null)
   const [payment,  setPayment ] = useState('cod')
   const [placing,  setPlacing ] = useState(false)
+  const userId = user?.userId
+  const userEmail = user?.email || ''
+
+  const selectedAddress = useMemo(
+    () => addresses.find(item => item.addressId === selectedAddressId),
+    [addresses, selectedAddressId],
+  )
+
+  useEffect(() => {
+    if (!userId) return
+
+    let mounted = true
+
+    async function loadCheckoutProfile() {
+      try {
+        const [profile, savedAddresses] = await Promise.all([
+          userApi.getMe(),
+          userApi.listAddresses(),
+        ])
+
+        if (!mounted) return
+
+        updateUser({
+          fullName: profile.fullName,
+          phone: profile.phone,
+          avatarUrl: profile.avatarUrl,
+          role: profile.role,
+        })
+
+        setCustomer({
+          name: profile.fullName || '',
+          phone: profile.phone || '',
+          email: profile.email || userEmail,
+        })
+        setAddresses(savedAddresses)
+
+        const defaultAddress = savedAddresses.find(item => item.isDefault) || savedAddresses[0]
+        if (defaultAddress) {
+          setSelectedAddressId(defaultAddress.addressId)
+          setAddress(defaultAddress.fullAddress || '')
+          setCustomer(prev => ({
+            ...prev,
+            name: prev.name || defaultAddress.receiverName,
+            phone: prev.phone || defaultAddress.phone,
+          }))
+        } else {
+          setSelectedAddressId('new')
+        }
+      } catch {
+        if (mounted) setSelectedAddressId('new')
+      }
+    }
+
+    loadCheckoutProfile()
+    return () => { mounted = false }
+  }, [userId, userEmail, updateUser])
 
   const handleCustomerChange = (field, value) =>
     setCustomer(prev => ({ ...prev, [field]: value }))
+
+  const handleAddressSelect = (addressId) => {
+    setSelectedAddressId(addressId)
+    if (addressId === 'new') {
+      setAddress('')
+      return
+    }
+
+    const nextAddress = addresses.find(item => item.addressId === addressId)
+    if (nextAddress) {
+      setAddress(nextAddress.fullAddress || '')
+      setCustomer(prev => ({
+        ...prev,
+        name: prev.name || nextAddress.receiverName,
+        phone: prev.phone || nextAddress.phone,
+      }))
+    }
+  }
+
+  const createPayment = async (orderId) => {
+    const returnUrl = `${window.location.origin}/tai-khoan`
+    if (payment === 'momo') return paymentsApi.createMomo(orderId, returnUrl)
+    if (payment === 'atm' || payment === 'intl') return paymentsApi.createVnPay(orderId, returnUrl)
+    if (payment === 'qr') return paymentsApi.createQr(orderId, returnUrl)
+    if (payment === 'zalo') return paymentsApi.createZaloPay(orderId, returnUrl)
+    return null
+  }
 
   const handlePlaceOrder = async () => {
     if (!user) {
@@ -44,48 +127,38 @@ function CheckoutPage() {
       return
     }
 
-    if (!customer.name.trim() || !customer.phone.trim() || !address.trim()) {
-      alert('Vui lòng nhập họ tên, số điện thoại và địa chỉ nhận hàng.')
-      return
-    }
+    const receiverName = customer.name.trim() || selectedAddress?.receiverName || user.fullName || ''
+    const phone = customer.phone.trim() || selectedAddress?.phone || user.phone || ''
+    const shippingAddress = selectedAddressId && selectedAddressId !== 'new'
+      ? selectedAddress?.fullAddress || ''
+      : address.trim()
 
-    if (payment === 'qr' || payment === 'zalo') {
-      alert('Phương thức này chưa có endpoint backend. Vui lòng chọn COD, ATM/VNPAY hoặc MoMo.')
+    if (!receiverName || !phone || !shippingAddress) {
+      alert('Vui lòng bổ sung số điện thoại và địa chỉ trong Thông tin tài khoản, hoặc nhập địa chỉ mới tại bước nhận hàng.')
       return
     }
 
     try {
       setPlacing(true)
 
-      // Truyền selectedCartItemIds để backend chỉ xử lý các item được chọn
-      // Các item không được chọn sẽ được GIỮ LẠI trong cart
       const selectedCartItemIds = selectedItems.map(item => item.id)
-
       const order = await ordersApi.create({
-        receiverName: customer.name.trim(),
-        phone: customer.phone.trim(),
-        shippingAddress: address.trim(),
+        receiverName,
+        phone,
+        shippingAddress,
+        addressId: selectedAddressId && selectedAddressId !== 'new' ? selectedAddressId : null,
         note: delivery === 'home' ? null : delivery,
         selectedCartItemIds,
       })
 
-      if (payment === 'momo') {
-        // Đồng bộ local cart với server (backend đã xóa items đã checkout)
-        await refresh()
-        const gateway = await paymentsApi.createMomo(order.orderId, `${window.location.origin}/tai-khoan`)
-        window.location.href = gateway.paymentUrl
-        return
-      }
-
-      if (payment === 'atm' || payment === 'intl') {
-        await refresh()
-        const gateway = await paymentsApi.createVnPay(order.orderId, `${window.location.origin}/tai-khoan`)
-        window.location.href = gateway.paymentUrl
-        return
-      }
-
-      // COD: đồng bộ local cart với server (backend đã giữ lại items không được chọn)
       await refresh()
+
+      const gateway = await createPayment(order.orderId)
+      if (gateway?.paymentUrl) {
+        window.location.href = gateway.paymentUrl
+        return
+      }
+
       alert('Đặt hàng thành công!')
       navigate('/tai-khoan')
     } catch (err) {
@@ -95,14 +168,12 @@ function CheckoutPage() {
     }
   }
 
-  // Guard — nothing selected
   if (selectedItems.length === 0) {
     return <Navigate to="/gio-hang" replace />
   }
 
   return (
     <div className="container checkout-page">
-      {/* ← Quay lại giỏ hàng */}
       <button
         className="checkout-back"
         onClick={() => navigate('/gio-hang')}
@@ -114,7 +185,6 @@ function CheckoutPage() {
       </button>
 
       <div className="checkout-layout">
-        {/* Left column */}
         <div className="checkout-left">
           <CheckoutItemList items={selectedItems} />
 
@@ -128,6 +198,9 @@ function CheckoutPage() {
             onChange={setDelivery}
             address={address}
             onAddressChange={setAddress}
+            addresses={addresses}
+            selectedAddressId={selectedAddressId}
+            onAddressSelect={handleAddressSelect}
           />
 
           <CheckoutPayment
@@ -136,7 +209,6 @@ function CheckoutPage() {
           />
         </div>
 
-        {/* Right column — sticky summary */}
         <CheckoutSummary
           subtotal={subtotal}
           originalTotal={originalTotal}
