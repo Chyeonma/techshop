@@ -320,8 +320,10 @@ public class AuthController : ControllerBase
                 }
                 await _context.SaveChangesAsync();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine("=== LỖI GỬI EMAIL THẤT BẠI TRÊN RENDER ===");
+                Console.WriteLine(ex.ToString());
                 return StatusCode(500, ApiResponse<object>.Fail("EMAIL_SEND_FAILED", "He thong dang loi gui mail, vui long thu lai sau."));
             }
         }
