@@ -5,7 +5,7 @@ import ProductCard from '../ProductCard/ProductCard'
 import './ProductSection.css'
 
 /**
- * ProductSection — reusable section with title badge, brand tabs, and product grid.
+ * ProductSection — reusable section with title badge, brand tabs, and product carousel.
  *
  * Props:
  *   title      {string}   — section heading text, e.g. "Điện thoại"
@@ -13,50 +13,56 @@ import './ProductSection.css'
  *   products   {object[]} — full product list for this section
  *   activeTab  {string}   — currently active tab label
  *   onTabChange{function} — called with the newly selected tab label
- *   maxVisible {number}   — max cards to show per page (default 10)
+ *   maxVisible {number}   — number of cards shown at once (default 5)
  *   linkTo     {string}   — optional route to navigate to when clicking the title
  *   linkable   {boolean}  — whether cards navigate to detail page (default true)
  */
-function ProductSection({ title, tabs, products, activeTab, onTabChange, maxVisible = 10, linkTo, linkable = true }) {
-  const [page, setPage] = useState(0)
+function ProductSection({ title, tabs, products, activeTab, onTabChange, maxVisible = 5, linkTo, linkable = true }) {
+  // offset = index of the first visible card (scrolls 1 card at a time)
+  const [offset, setOffset] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
 
   const filtered = activeTab
     ? products.filter(p => p.brand === activeTab)
     : products
 
-  // Split products into fixed-size pages (chunks)
-  const chunks = []
-  for (let i = 0; i < filtered.length; i += maxVisible) {
-    chunks.push(filtered.slice(i, i + maxVisible))
-  }
-  if (chunks.length === 0) chunks.push([])
+  const totalCards = filtered.length
+  const canPaginate = totalCards > maxVisible
 
-  const totalPages = chunks.length
-  const canPaginate = totalPages > 1
+  // Clamp offset so we never go out of bounds
+  const maxOffset = Math.max(0, totalCards - maxVisible)
+  const safeOffset = Math.min(offset, maxOffset)
 
-  const isFirst = page === 0
-  const isLast = page >= totalPages - 1
+  const canPrev = safeOffset > 0
+  const canNext = safeOffset < maxOffset
 
-  // Reset to first page when filter or data changes
+  // Reset to start when filter or data changes
   useEffect(() => {
-    setPage(0)
+    setOffset(0)
   }, [activeTab, products])
 
-  // Guard against page going out of range after data changes
-  useEffect(() => {
-    if (page >= totalPages && totalPages > 0) {
-      setPage(totalPages - 1)
-    }
-  }, [page, totalPages])
-
   const goPrev = () => {
-    if (!isFirst) setPage(p => p - 1)
+    if (canPrev) setOffset(o => Math.max(0, o - 1))
   }
 
   const goNext = () => {
-    if (!isLast) setPage(p => p + 1)
+    if (canNext) setOffset(o => Math.min(maxOffset, o + 1))
   }
+
+  // ── Sliding track geometry ──────────────────────────────────
+  //
+  //  viewport  = 100% (clips the track)
+  //  Each slot = viewport / maxVisible
+  //  Track     = totalCards × slot = (totalCards / maxVisible) × 100% of viewport
+  //
+  //  translateX is in % of the TRACK, so:
+  //    1 slot = slot / track = (1/maxVisible) / (totalCards/maxVisible) = 1/totalCards
+  //  → offset slots = offset × 100% / totalCards
+  //
+  const trackWidthPct  = totalCards > 0 ? (totalCards * 100) / maxVisible : 100
+  const translateXPct  = totalCards > 0 ? (safeOffset * 100) / totalCards : 0
+  // Each slide = 1/totalCards of track = 1/maxVisible of viewport (before padding)
+  const slideWidthPct  = totalCards > 0 ? 100 / totalCards : 100 / maxVisible
 
   const titleContent = (
     <h2 className="product-section-title">{title}</h2>
@@ -100,38 +106,32 @@ function ProductSection({ title, tabs, products, activeTab, onTabChange, maxVisi
               'product-section-nav',
               'product-section-nav-prev',
               isHovered ? 'visible' : '',
-              isFirst ? 'disabled' : '',
+              !canPrev ? 'disabled' : '',
             ].join(' ').trim()}
             onClick={goPrev}
-            disabled={isFirst}
+            disabled={!canPrev}
             aria-label={`Sản phẩm ${title} trước đó`}
           >
             <ChevronLeft size={20} />
           </button>
         )}
 
-        {/* Viewport clips the sliding track */}
+        {/* Viewport: clips overflow, shows exactly maxVisible cards */}
         <div className="product-section-viewport">
           <div
             className="product-section-track"
             style={{
-              // Track = N pages wide; each page = viewport width
-              // translateX in % is relative to the track itself,
-              // so each page step = 100% / N
-              width: `${chunks.length * 100}%`,
-              transform: `translateX(-${page * (100 / chunks.length)}%)`,
+              width: `${trackWidthPct}%`,
+              transform: `translateX(-${translateXPct}%)`,
             }}
           >
-            {chunks.map((chunk, idx) => (
-              // Each grid = 100%/N of track = exactly 1 viewport-width
+            {filtered.map((product, idx) => (
               <div
-                key={idx}
-                className="product-section-grid"
-                style={{ width: `${100 / chunks.length}%` }}
+                key={product.id ?? idx}
+                className="product-section-slide"
+                style={{ width: `${slideWidthPct}%` }}
               >
-                {chunk.map(product => (
-                  <ProductCard key={product.id} product={product} linkable={linkable} />
-                ))}
+                <ProductCard product={product} linkable={linkable} />
               </div>
             ))}
           </div>
@@ -144,10 +144,10 @@ function ProductSection({ title, tabs, products, activeTab, onTabChange, maxVisi
               'product-section-nav',
               'product-section-nav-next',
               isHovered ? 'visible' : '',
-              isLast ? 'disabled' : '',
+              !canNext ? 'disabled' : '',
             ].join(' ').trim()}
             onClick={goNext}
-            disabled={isLast}
+            disabled={!canNext}
             aria-label={`Sản phẩm ${title} tiếp theo`}
           >
             <ChevronRight size={20} />

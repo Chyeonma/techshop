@@ -99,16 +99,20 @@
 }
 
 /*
- * Each page's width is set via inline style (= 100% / totalPages of track).
- * flex-shrink: 0 prevents flex from squishing pages.
- * box-sizing: border-box ensures gap doesn't expand beyond the set width.
+ * Each slide = one product card occupying exactly 1/maxVisible of the viewport.
+ * Width is set via inline style from JSX.
+ * padding-right creates the 12px visual gap between cards.
+ * box-sizing: border-box so padding doesn't add to the set width.
  */
-.product-section-grid {
+.product-section-slide {
   flex-shrink: 0;
   box-sizing: border-box;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
+  padding-right: 12px;
+}
+
+/* No trailing gap after the very last card */
+.product-section-slide:last-child {
+  padding-right: 0;
 }
 
 /* ─── Nav arrow buttons ──────────────────────────────────── */
@@ -173,22 +177,7 @@
 }
 
 /* ─── Responsive ─────────────────────────────────────────── */
-@media (max-width: 1024px) {
-  .product-section-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .product-section-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
 @media (max-width: 560px) {
-  .product-section-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .product-section-title {
     font-size: var(--font-size-md);
   }
