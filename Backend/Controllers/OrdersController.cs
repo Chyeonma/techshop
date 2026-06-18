@@ -40,9 +40,20 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/cancel")]
-    public async Task<IActionResult> CancelOrder(Guid id)
+    public async Task<IActionResult> CancelOrder(Guid id, CancelOrderDto? dto)
     {
-        var response = await _ordersService.CancelOrderAsync(GetUserId(), id);
+        var response = await _ordersService.CancelOrderAsync(GetUserId(), id, dto);
+        if (!response.Success)
+        {
+            return response.Error == "NOT_FOUND" ? NotFound(response) : BadRequest(response);
+        }
+        return Ok(response);
+    }
+
+    [HttpPatch("{id:guid}/address")]
+    public async Task<IActionResult> UpdateAddress(Guid id, UpdateOrderAddressDto dto)
+    {
+        var response = await _ordersService.UpdateAddressAsync(GetUserId(), id, dto);
         if (!response.Success)
         {
             return response.Error == "NOT_FOUND" ? NotFound(response) : BadRequest(response);

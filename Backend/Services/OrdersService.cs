@@ -25,9 +25,45 @@ public class OrdersService : IOrdersService
             .Include(c => c.Items).ThenInclude(i => i.Variant).ThenInclude(v => v!.Inventory)
             .FirstOrDefaultAsync(c => c.UserId == userId);
 
+        var user = await _context.Users
+            .Include(u => u.Addresses)
+            .FirstOrDefaultAsync(u => u.UserId == userId);
+
         if (cart == null || cart.Items.Count == 0)
         {
             return ApiResponse<object>.Fail("EMPTY_CART", "Gio hang dang trong.");
+        }
+
+        if (user == null)
+        {
+            return ApiResponse<object>.Fail("USER_NOT_FOUND", "Nguoi dung khong ton tai.");
+        }
+
+        Address? selectedAddress = null;
+        if (dto.AddressId.HasValue)
+        {
+            selectedAddress = user.Addresses.FirstOrDefault(a => a.AddressId == dto.AddressId.Value);
+            if (selectedAddress == null)
+            {
+                return ApiResponse<object>.Fail("INVALID_ADDRESS", "Dia chi giao hang khong hop le.");
+            }
+        }
+
+        selectedAddress ??= string.IsNullOrWhiteSpace(dto.ShippingAddress)
+            ? user.Addresses.OrderByDescending(a => a.IsDefault).FirstOrDefault()
+            : null;
+
+        var receiverName = FirstNonEmpty(dto.ReceiverName, selectedAddress?.ReceiverName, user.FullName);
+        var phone = FirstNonEmpty(dto.Phone, selectedAddress?.Phone, user.Phone);
+        var shippingAddress = selectedAddress == null
+            ? FirstNonEmpty(dto.ShippingAddress)
+            : FormatAddress(selectedAddress);
+
+        if (string.IsNullOrWhiteSpace(receiverName) || string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(shippingAddress))
+        {
+            return ApiResponse<object>.Fail(
+                "PROFILE_INCOMPLETE",
+                "Vui long cap nhat so dien thoai va dia chi trong Thong tin tai khoan truoc khi dat hang.");
         }
 
         var itemsToProcess = cart.Items.AsEnumerable();
@@ -45,9 +81,9 @@ public class OrdersService : IOrdersService
         var order = new Order
         {
             UserId = userId,
-            ReceiverName = dto.ReceiverName,
-            Phone = dto.Phone,
-            ShippingAddress = dto.ShippingAddress,
+            ReceiverName = receiverName,
+            Phone = phone,
+            ShippingAddress = shippingAddress,
             Note = dto.Note,
             Status = "Pending",
             ShippingFee = 0
@@ -99,6 +135,34 @@ public class OrdersService : IOrdersService
             cart.Coupon.UsedCount += 1;
         }
 
+        if (string.IsNullOrWhiteSpace(user.Phone))
+        {
+            user.Phone = phone;
+            user.UpdatedAt = DateTime.UtcNow;
+        }
+
+        if (!dto.AddressId.HasValue && !string.IsNullOrWhiteSpace(dto.ShippingAddress))
+        {
+            var alreadySaved = user.Addresses.Any(a =>
+                string.Equals(FormatAddress(a), shippingAddress, StringComparison.OrdinalIgnoreCase));
+
+            if (!alreadySaved)
+            {
+                var isFirstAddress = user.Addresses.Count == 0;
+                _context.Addresses.Add(new Address
+                {
+                    UserId = userId,
+                    ReceiverName = receiverName,
+                    Phone = phone,
+                    Province = string.Empty,
+                    District = string.Empty,
+                    Ward = string.Empty,
+                    Street = shippingAddress,
+                    IsDefault = isFirstAddress
+                });
+            }
+        }
+
         _context.Orders.Add(order);
 
         var itemsToRemove = itemsToProcess.ToList();
@@ -146,7 +210,7 @@ public class OrdersService : IOrdersService
         return ApiResponse<object>.Ok(MapOrder(order));
     }
 
-    public async Task<ApiResponse<object>> CancelOrderAsync(Guid userId, Guid id)
+    public async Task<ApiResponse<object>> CancelOrderAsync(Guid userId, Guid id, CancelOrderDto? dto)
     {
         var order = await LoadOrder(id);
         if (order == null || order.UserId != userId)
@@ -154,16 +218,25 @@ public class OrdersService : IOrdersService
             return ApiResponse<object>.Fail("NOT_FOUND", "Don hang khong ton tai.");
         }
 
-        if (order.Status is "Completed" or "Cancelled")
+        if (order.Status != "Pending")
         {
-            return ApiResponse<object>.Fail("INVALID_STATUS", "Khong the huy don o trang thai hien tai.");
+            return ApiResponse<object>.Fail("INVALID_STATUS", "Chi co the huy don hang dang cho xu ly.");
         }
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
         var oldStatus = order.Status;
+        
+        var reason = FirstNonEmpty(dto?.Reason);
+        var note = FirstNonEmpty(dto?.Note);
+        var cancelNote = string.IsNullOrWhiteSpace(reason)
+            ? "Customer cancelled"
+            : string.IsNullOrWhiteSpace(note)
+                ? $"Customer cancelled: {reason}"
+                : $"Customer cancelled: {reason} - {note}";
+
         order.Status = "Cancelled";
         order.UpdatedAt = DateTime.UtcNow;
-        _context.OrderStatusLogs.Add(new OrderStatusLog { OrderId = order.OrderId, OldStatus = oldStatus, NewStatus = "Cancelled", Note = "Customer cancelled", ChangedBy = userId });
+        _context.OrderStatusLogs.Add(new OrderStatusLog { OrderId = order.OrderId, OldStatus = oldStatus, NewStatus = "Cancelled", Note = cancelNote, ChangedBy = userId });
 
         foreach (var item in order.Items)
         {
@@ -190,9 +263,49 @@ public class OrdersService : IOrdersService
         return ApiResponse<object>.Ok(MapOrder(order), "Da huy don hang.");
     }
 
+    public async Task<ApiResponse<object>> UpdateAddressAsync(Guid userId, Guid id, UpdateOrderAddressDto dto)
+    {
+        var order = await LoadOrder(id);
+        if (order == null || order.UserId != userId)
+        {
+            return ApiResponse<object>.Fail("NOT_FOUND", "Don hang khong ton tai.");
+        }
+
+        if (order.Status != "Pending")
+        {
+            return ApiResponse<object>.Fail("INVALID_STATUS", "Chi co the doi dia chi khi don hang dang cho xu ly.");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.ReceiverName) ||
+            string.IsNullOrWhiteSpace(dto.Phone) ||
+            string.IsNullOrWhiteSpace(dto.ShippingAddress))
+        {
+            return ApiResponse<object>.Fail("INVALID_ADDRESS", "Vui long nhap day du nguoi nhan, so dien thoai va dia chi.");
+        }
+
+        order.ReceiverName = dto.ReceiverName.Trim();
+        order.Phone = dto.Phone.Trim();
+        order.ShippingAddress = dto.ShippingAddress.Trim();
+        order.UpdatedAt = DateTime.UtcNow;
+        _context.OrderStatusLogs.Add(new OrderStatusLog
+        {
+            OrderId = order.OrderId,
+            OldStatus = order.Status,
+            NewStatus = order.Status,
+            Note = "Customer updated shipping address",
+            ChangedBy = userId
+        });
+
+        await _context.SaveChangesAsync();
+
+        return ApiResponse<object>.Ok(MapOrder(order), "Da cap nhat dia chi giao hang.");
+    }
+
     private async Task<Order?> LoadOrder(Guid id)
         => await _context.Orders
             .Include(o => o.Items)
+                .ThenInclude(i => i.Variant)
+                .ThenInclude(v => v!.Product)
             .Include(o => o.StatusLogs)
             .Include(o => o.Payment)
             .FirstOrDefaultAsync(o => o.OrderId == id);
@@ -211,6 +324,18 @@ public class OrdersService : IOrdersService
         return cart.Coupon.MaxDiscount.HasValue ? Math.Min(discount, cart.Coupon.MaxDiscount.Value) : discount;
     }
 
+    private static string FirstNonEmpty(params string?[] values)
+        => values.Select(value => value?.Trim()).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+
+    private static string FormatAddress(Address address)
+        => string.Join(", ", new[]
+        {
+            address.Street,
+            address.Ward,
+            address.District,
+            address.Province
+        }.Where(part => !string.IsNullOrWhiteSpace(part)));
+
     private static object MapOrder(Order order)
         => new
         {
@@ -226,7 +351,24 @@ public class OrdersService : IOrdersService
             order.TrackingCode,
             order.Note,
             order.CreatedAt,
-            items = order.Items.Select(i => new { i.OrderItemId, i.VariantId, i.ProductName, i.VariantInfo, i.Quantity, i.UnitPrice, i.Subtotal }),
+            cancelReason = order.StatusLogs
+                .Where(l => l.NewStatus == "Cancelled")
+                .OrderByDescending(l => l.ChangedAt)
+                .Select(l => l.Note)
+                .FirstOrDefault(),
+            itemCount = order.Items.Sum(i => i.Quantity),
+            items = order.Items.Select(i => new
+            {
+                i.OrderItemId,
+                i.VariantId,
+                productId = i.Variant?.ProductId,
+                productSlug = i.Variant?.Product?.Slug,
+                i.ProductName,
+                i.VariantInfo,
+                i.Quantity,
+                i.UnitPrice,
+                i.Subtotal
+            }),
             payment = order.Payment == null ? null : new { order.Payment.Method, order.Payment.Status, order.Payment.Amount },
             statusLogs = order.StatusLogs.OrderBy(l => l.ChangedAt).Select(l => new { l.OldStatus, l.NewStatus, l.Note, l.ChangedAt })
         };

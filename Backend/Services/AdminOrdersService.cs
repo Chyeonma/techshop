@@ -23,7 +23,10 @@ public class AdminOrdersService : IAdminOrdersService
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
-        var query = _context.Orders.Include(o => o.User).AsQueryable();
+        var query = _context.Orders
+            .Include(o => o.User)
+            .Include(o => o.StatusLogs)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
         {
@@ -42,6 +45,14 @@ public class AdminOrdersService : IAdminOrdersService
                 o.GrandTotal,
                 o.TrackingCode,
                 o.CreatedAt,
+                cancelReason = o.StatusLogs
+                    .Where(l => l.NewStatus == "Cancelled")
+                    .OrderByDescending(l => l.ChangedAt)
+                    .Select(l => l.Note)
+                    .FirstOrDefault(),
+                statusLogs = o.StatusLogs
+                    .OrderByDescending(l => l.ChangedAt)
+                    .Select(l => new { l.OldStatus, l.NewStatus, l.Note, l.ChangedAt }),
                 customer = o.User == null ? null : new { o.User.UserId, o.User.Email, o.User.FullName }
             })
             .ToListAsync();
@@ -55,6 +66,11 @@ public class AdminOrdersService : IAdminOrdersService
         if (order == null)
         {
             return ApiResponse<object>.Fail("NOT_FOUND", "Don hang khong ton tai.");
+        }
+
+        if (order.Status == "Cancelled")
+        {
+            return ApiResponse<object>.Fail("ORDER_LOCKED", "Don hang da huy va da bi khoa.");
         }
 
         var oldStatus = order.Status;
@@ -80,6 +96,11 @@ public class AdminOrdersService : IAdminOrdersService
         if (order == null)
         {
             return ApiResponse<object>.Fail("NOT_FOUND", "Don hang khong ton tai.");
+        }
+
+        if (order.Status == "Cancelled")
+        {
+            return ApiResponse<object>.Fail("ORDER_LOCKED", "Don hang da huy va da bi khoa.");
         }
 
         order.TrackingCode = dto.TrackingCode;
