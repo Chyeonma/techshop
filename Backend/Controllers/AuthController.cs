@@ -283,7 +283,11 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
     {
         var email = dto.Email.Trim().ToLowerInvariant();
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+
+        Console.WriteLine($"[FORGOT_PASSWORD] Request for email: {email}");
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
 
         if (user != null)
         {
@@ -291,46 +295,127 @@ public class AuthController : ControllerBase
 
             try
             {
+                Console.WriteLine("[MAIL] User found");
+
+                Console.WriteLine($"[MAIL] Host = {_configuration["Email:Host"]}");
+                Console.WriteLine($"[MAIL] Port = {_configuration["Email:Port"]}");
+                Console.WriteLine($"[MAIL] Username = {_configuration["Email:Username"]}");
+                Console.WriteLine($"[MAIL] Password Exists = {!string.IsNullOrWhiteSpace(_configuration["Email:Password"])}");
+
+                Console.WriteLine("[MAIL] Creating message");
+
                 var mailMessage = new MimeMessage();
-                mailMessage.From.Add(new MailboxAddress("TechShop", _configuration["Email:Username"]));
-                mailMessage.To.Add(new MailboxAddress(user.FullName, email));
+                mailMessage.From.Add(
+                    new MailboxAddress(
+                        "TechShop",
+                        _configuration["Email:Username"]
+                    )
+                );
+
+                mailMessage.To.Add(
+                    new MailboxAddress(
+                        user.FullName,
+                        email
+                    )
+                );
+
                 mailMessage.Subject = "Mật khẩu mới của bạn - TechShop";
+
                 mailMessage.Body = new TextPart("plain")
                 {
-                    Text = $"Xin chào {user.FullName},\n\nMật khẩu của bạn đã được reset tự động.\nMật khẩu mới của bạn là: {newPassword}\n\nVui lòng đăng nhập và ĐỔI LẠI MẬT KHẨU NGAY LẬP TỨC để đảm bảo an toàn.\n\nTrân trọng."
+                    Text =
+                        $"Xin chào {user.FullName},\n\n" +
+                        $"Mật khẩu của bạn đã được reset tự động.\n" +
+                        $"Mật khẩu mới của bạn là: {newPassword}\n\n" +
+                        $"Vui lòng đăng nhập và đổi lại mật khẩu ngay.\n\n" +
+                        $"Trân trọng."
                 };
+
+                Console.WriteLine("[MAIL] Message created");
 
                 using (var smtpClient = new SmtpClient())
                 {
-                    smtpClient.Timeout = 10000; // 10s timeout to prevent hanging UI
-                    await smtpClient.ConnectAsync(_configuration["Email:Host"], int.Parse(_configuration["Email:Port"] ?? "587"), SecureSocketOptions.StartTls);
-                    await smtpClient.AuthenticateAsync(_configuration["Email:Username"], _configuration["Email:Password"]);
+                    smtpClient.Timeout = 10000;
+
+                    Console.WriteLine("[MAIL] Connecting...");
+
+                    await smtpClient.ConnectAsync(
+                        _configuration["Email:Host"],
+                        int.Parse(_configuration["Email:Port"] ?? "587"),
+                        SecureSocketOptions.StartTls
+                    );
+
+                    Console.WriteLine("[MAIL] Connected");
+
+                    Console.WriteLine("[MAIL] Authenticating...");
+
+                    await smtpClient.AuthenticateAsync(
+                        _configuration["Email:Username"],
+                        _configuration["Email:Password"]
+                    );
+
+                    Console.WriteLine("[MAIL] Authenticated");
+
+                    Console.WriteLine("[MAIL] Sending...");
+
                     await smtpClient.SendAsync(mailMessage);
+
+                    Console.WriteLine("[MAIL] Sent");
+
                     await smtpClient.DisconnectAsync(true);
+
+                    Console.WriteLine("[MAIL] Disconnected");
                 }
 
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+                Console.WriteLine("[MAIL] Updating password");
+
+                user.PasswordHash =
+                    BCrypt.Net.BCrypt.HashPassword(newPassword);
 
                 var allUserTokens = await _context.RefreshTokens
                     .Where(t => t.UserId == user.UserId && !t.IsRevoked)
                     .ToListAsync();
+
                 foreach (var t in allUserTokens)
                 {
                     t.IsRevoked = true;
                 }
+
                 await _context.SaveChangesAsync();
+
+                Console.WriteLine("[MAIL] Database updated");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("=== LỖI GỬI EMAIL THẤT BẠI TRÊN RENDER ===");
+                Console.WriteLine("=================================");
+                Console.WriteLine("EMAIL SEND FAILED");
+                Console.WriteLine(ex.Message);
                 Console.WriteLine(ex.ToString());
-                return StatusCode(500, ApiResponse<object>.Fail("EMAIL_SEND_FAILED", "He thong dang loi gui mail, vui long thu lai sau."));
+                Console.WriteLine("=================================");
+
+                return StatusCode(
+                    500,
+                    ApiResponse<object>.Fail(
+                        "EMAIL_SEND_FAILED",
+                        ex.Message
+                    )
+                );
             }
         }
+        else
+        {
+            Console.WriteLine($"[FORGOT_PASSWORD] User not found: {email}");
+        }
 
-        return Ok(ApiResponse<object>.Ok(new { }, "Neu email hop le, mat khau moi da duoc gui. Vui long kiem tra hom thu."));
+        Console.WriteLine("[FORGOT_PASSWORD] Finished");
+
+        return Ok(
+            ApiResponse<object>.Ok(
+                new { },
+                "Neu email hop le, mat khau moi da duoc gui. Vui long kiem tra hom thu."
+            )
+        );
     }
-
     private static object ToUserDto(User user, string roleName) => new
     {
         user.UserId,
