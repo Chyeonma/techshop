@@ -11,6 +11,9 @@ using TechShop.Backend.Data;
 using TechShop.Backend.DTOs;
 using TechShop.Backend.DTOs.Common;
 using TechShop.Backend.Models;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 
 namespace TechShop.Backend.Controllers;
 
@@ -288,23 +291,23 @@ public class AuthController : ControllerBase
 
             try
             {
-                var smtpClient = new System.Net.Mail.SmtpClient(_configuration["Email:Host"])
+                var mailMessage = new MimeMessage();
+                mailMessage.From.Add(new MailboxAddress("TechShop", _configuration["Email:Username"]));
+                mailMessage.To.Add(new MailboxAddress(user.FullName, email));
+                mailMessage.Subject = "Mật khẩu mới của bạn - TechShop";
+                mailMessage.Body = new TextPart("plain")
                 {
-                    Port = int.Parse(_configuration["Email:Port"] ?? "587"),
-                    Credentials = new System.Net.NetworkCredential(_configuration["Email:Username"], _configuration["Email:Password"]),
-                    EnableSsl = true,
+                    Text = $"Xin chào {user.FullName},\n\nMật khẩu của bạn đã được reset tự động.\nMật khẩu mới của bạn là: {newPassword}\n\nVui lòng đăng nhập và ĐỔI LẠI MẬT KHẨU NGAY LẬP TỨC để đảm bảo an toàn.\n\nTrân trọng."
                 };
 
-                var mailMessage = new System.Net.Mail.MailMessage
+                using (var smtpClient = new SmtpClient())
                 {
-                    From = new System.Net.Mail.MailAddress(_configuration["Email:Username"]!),
-                    Subject = "Mật khẩu mới của bạn - TechShop",
-                    Body = $"Xin chào {user.FullName},\n\nMật khẩu của bạn đã được reset tự động.\nMật khẩu mới của bạn là: {newPassword}\n\nVui lòng đăng nhập và ĐỔI LẠI MẬT KHẨU NGAY LẬP TỨC để đảm bảo an toàn.\n\nTrân trọng.",
-                    IsBodyHtml = false,
-                };
-                mailMessage.To.Add(email);
-
-                await smtpClient.SendMailAsync(mailMessage);
+                    smtpClient.Timeout = 10000; // 10s timeout to prevent hanging UI
+                    await smtpClient.ConnectAsync(_configuration["Email:Host"], int.Parse(_configuration["Email:Port"] ?? "587"), SecureSocketOptions.StartTls);
+                    await smtpClient.AuthenticateAsync(_configuration["Email:Username"], _configuration["Email:Password"]);
+                    await smtpClient.SendAsync(mailMessage);
+                    await smtpClient.DisconnectAsync(true);
+                }
 
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
 
