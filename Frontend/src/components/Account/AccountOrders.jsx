@@ -224,8 +224,8 @@ function AccountOrders() {
 
                 <div className="account-order-address">
                   <MapPin size={16} />
-                  <span>{order.receiverName} - {order.phone}</span>
-                  <small>{order.shippingAddress}</small>
+                  <span>{[order.receiverName, order.phone].filter(Boolean).join(' - ') || 'Chua co thong tin nguoi nhan'}</span>
+                  <small>{order.shippingAddress || 'Chua co dia chi giao hang'}</small>
                 </div>
 
                 {isLocked && (
@@ -235,7 +235,9 @@ function AccountOrders() {
                 {isExpanded && (
                   <div className="account-order-detail">
                     <div className="account-order-items">
-                      {items.map(item => (
+                      {items.length === 0 ? (
+                        <p className="account-orders-empty">Chua co du lieu san pham cho don hang nay.</p>
+                      ) : items.map(item => (
                         <div key={item.orderItemId} className="account-order-item">
                           <PackageCheck size={17} />
                           <div>

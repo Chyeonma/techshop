@@ -25,7 +25,11 @@ public class AdminOrdersService : IAdminOrdersService
         pageSize = Math.Clamp(pageSize, 1, 100);
         var query = _context.Orders
             .Include(o => o.User)
+            .Include(o => o.Items)
+                .ThenInclude(i => i.Variant)
+                .ThenInclude(v => v!.Product)
             .Include(o => o.StatusLogs)
+            .Include(o => o.Payment)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -34,17 +38,28 @@ public class AdminOrdersService : IAdminOrdersService
         }
 
         var total = await query.CountAsync();
-        var orders = await query
+        var orderPage = await query
             .OrderByDescending(o => o.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .ToListAsync();
+
+        var orders = orderPage
             .Select(o => new
             {
                 o.OrderId,
                 o.Status,
+                o.ReceiverName,
+                o.Phone,
+                o.ShippingAddress,
+                o.Subtotal,
+                o.DiscountTotal,
+                o.ShippingFee,
                 o.GrandTotal,
                 o.TrackingCode,
+                o.Note,
                 o.CreatedAt,
+                o.UpdatedAt,
                 cancelReason = o.StatusLogs
                     .Where(l => l.NewStatus == "Cancelled")
                     .OrderByDescending(l => l.ChangedAt)
@@ -53,9 +68,30 @@ public class AdminOrdersService : IAdminOrdersService
                 statusLogs = o.StatusLogs
                     .OrderByDescending(l => l.ChangedAt)
                     .Select(l => new { l.OldStatus, l.NewStatus, l.Note, l.ChangedAt }),
-                customer = o.User == null ? null : new { o.User.UserId, o.User.Email, o.User.FullName }
+                customer = o.User == null ? null : new { o.User.UserId, o.User.Email, o.User.FullName, o.User.Phone },
+                items = o.Items.Select(i => new
+                {
+                    i.OrderItemId,
+                    i.VariantId,
+                    productId = i.Variant?.ProductId,
+                    productSlug = i.Variant?.Product?.Slug,
+                    i.ProductName,
+                    i.VariantInfo,
+                    i.Quantity,
+                    i.UnitPrice,
+                    i.Subtotal
+                }),
+                payment = o.Payment == null ? null : new
+                {
+                    o.Payment.PaymentId,
+                    o.Payment.Method,
+                    o.Payment.Status,
+                    o.Payment.Amount,
+                    o.Payment.TransactionCode,
+                    o.Payment.PaidAt
+                }
             })
-            .ToListAsync();
+            .ToList();
 
         return ApiResponse<object>.Ok(orders, "OK", new PaginationMeta(page, pageSize, total));
     }
