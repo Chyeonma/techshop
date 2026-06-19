@@ -185,18 +185,15 @@ public class OrdersService : IOrdersService
     {
         var orders = await _context.Orders
             .Where(o => o.UserId == userId)
+            .Include(o => o.Items)
+                .ThenInclude(i => i.Variant)
+                .ThenInclude(v => v!.Product)
+            .Include(o => o.StatusLogs)
+            .Include(o => o.Payment)
             .OrderByDescending(o => o.CreatedAt)
-            .Select(o => new
-            {
-                o.OrderId,
-                o.Status,
-                o.GrandTotal,
-                o.CreatedAt,
-                itemCount = o.Items.Sum(i => i.Quantity)
-            })
             .ToListAsync();
 
-        return ApiResponse<object>.Ok(orders);
+        return ApiResponse<object>.Ok(orders.Select(MapOrder).ToList());
     }
 
     public async Task<ApiResponse<object>> GetOrderAsync(Guid userId, Guid id)
