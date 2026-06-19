@@ -5,7 +5,7 @@
 
   **Nền tảng E-Commerce hiện đại dành cho thiết bị công nghệ**
   
-  ### 🌐 [**TRẢI NGHIỆM WEBSITE TRỰC TUYẾN TẠI ĐÂY (LIVE DEMO)**](https://techshop-55gp.vercel.app/) 🌐
+  ### 🌐 [**TRẢI NGHIỆM WEBSITE TRỰC TUYẾN TẠI ĐÂY (LIVE DEMO)**](#) 🌐
 
   [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet)](https://dotnet.microsoft.com/)
   [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
@@ -58,14 +58,14 @@
 
 ## 🚀 Hướng dẫn cài đặt và khởi chạy (Getting Started)
 
-Dự án có thể được khởi chạy theo hai cách trên môi trường Local. Chúng tôi **khuyến nghị sử dụng Docker** để thiết lập nhanh nhất và đồng bộ môi trường.
+Để khởi chạy dự án (dù bằng Docker hay Thủ công), **bắt buộc** phải thiết lập biến môi trường trước.
 
 ### Yêu cầu tiên quyết (Prerequisites)
 *   **Nếu dùng Docker (Khuyên dùng):** Cài đặt [Docker Desktop](https://www.docker.com/).
-*   **Nếu chạy thủ công:** Cài đặt [Node.js](https://nodejs.org/) (v18+), [.NET SDK 10](https://dotnet.microsoft.com/), và [PostgreSQL](https://www.postgresql.org/) (hoặc sử dụng Supabase).
+*   **Nếu chạy thủ công:** Cài đặt [Node.js](https://nodejs.org/) (v18+), [.NET SDK 10](https://dotnet.microsoft.com/), và [PostgreSQL](https://www.postgresql.org/).
 
 ### Bước 1. Clone repository
-Dù chạy bằng cách nào, trước tiên bạn cần tải mã nguồn về máy:
+Tải mã nguồn về máy:
 ```bash
 git clone https://github.com/PiupuiTenshi/TechWeb-2026.git
 cd TechWeb-2026
@@ -73,64 +73,104 @@ cd TechWeb-2026
 
 ---
 
-### Cách 1. Chạy tự động bằng Docker (Khuyên dùng 🌟)
-Phương pháp này sẽ tự động khởi tạo Frontend, Backend API, và cả Database PostgreSQL trong các container riêng biệt mà không cần cài đặt thêm gì.
+### Bước 2. Cấu hình Biến môi trường (BẮT BUỘC)
 
-1. Tại thư mục gốc `TechWeb-2026`, mở terminal và chạy lệnh:
-   ```bash
-   docker-compose up --build
-   ```
-2. Đợi quá trình tải và build hoàn tất. Hệ thống sẽ có sẵn tại:
-   *   **Frontend:** `http://localhost:5173`
-   *   **Backend API & Swagger:** `http://localhost:5000/swagger`
-   *   **Database:** `localhost:5432`
+#### 2.1. Cấu hình Backend (`Backend/appsettings.json`)
+Tại thư mục `Backend`, tạo file `appsettings.json` (có thể copy từ `appsettings.example.json`) với nội dung mẫu kèm giải thích như sau:
+
+```json
+{
+  "ConnectionStrings": {
+    // Chuỗi kết nối đến PostgreSQL. 
+    // LƯU Ý: Nếu chạy bằng Docker (có service tên là 'db'), hãy đổi Host=localhost thành Host=db
+    "DefaultConnection": "Host=db;Port=5432;Database=TechShopDB;Username=postgres;Password=Iloveyou123@123"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Cors": {
+    // Danh sách các URL của Frontend được phép gọi tới API (tránh lỗi CORS)
+    "AllowedOrigins": [
+      "http://localhost:5173"
+    ]
+  },
+  "Jwt": {
+    // Chuỗi bí mật dùng để ký và mã hóa Token (Cần đặt phức tạp, không được để lộ)
+    "Secret": "Mot-Cai-Key-That-Dai-Va-Bao-Mat-Cua-Sang-12345",
+    "Key": "Mot-Cai-Key-That-Dai-Va-Bao-Mat-Cua-Sang-12345",
+    // Định danh bên phát hành Token (Issuer) và bên tiêu thụ Token (Audience)
+    "Issuer": "TechShop",
+    "Audience": "TechShopClient",
+    // Thời hạn sống của Access Token (tính bằng phút) và Refresh Token (tính bằng ngày)
+    "AccessTokenExpiry": "15",
+    "RefreshTokenExpiry": "7"
+  },
+  "Payment": {
+    // Mã bảo mật dùng để xác thực Webhook trả về từ cổng thanh toán
+    "CallbackSecret": "TechShop-Payment-Dev-Secret"
+  },
+  "Brevo": {
+    // Cấu hình dịch vụ gửi Email (Brevo) - Nhập API Key thật của bạn vào đây
+    "ApiKey": "write-brevokey-cua-ban",
+    "SenderName": "TechShop",
+    "SenderEmail": "Techshop@techshop.com"
+  }
+}
+```
+
+#### 2.2. Cấu hình Frontend (`Frontend/.env`)
+Tại thư mục `Frontend`, tạo file `.env` (có thể copy từ `.env.example`) và cấu hình như sau:
+
+```env
+# Địa chỉ gốc của Backend API để Frontend thực hiện các lời gọi mạng (Axios/Fetch)
+VITE_API_URL=http://localhost:5000
+
+# Mã Client ID của ứng dụng Google (Dùng cho tính năng Đăng nhập bằng Google Oauth2)
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+```
 
 ---
 
-### Cách 2. Chạy thủ công (Manual Setup)
-Nếu bạn muốn phát triển từng phần độc lập mà không dùng Docker, hãy làm theo các bước sau:
+### Bước 3. Khởi chạy dự án (Chọn 1 trong 2 cách)
 
-#### Thiết lập Backend (.NET API)
+#### Cách 1. Chạy tự động bằng Docker (Khuyên dùng 🌟)
+Cách này sẽ tự động tải các Image cần thiết và chạy Backend, Frontend, PostgreSQL DB trong các container cô lập.
+
+1. Tại thư mục gốc `TechWeb-2026`, mở terminal và chạy:
+   ```bash
+   docker-compose up --build
+   ```
+2. Chờ quá trình build hoàn tất. Dịch vụ sẽ chạy tại:
+   *   **Frontend:** `http://localhost:5173`
+   *   **Backend API & Swagger:** `http://localhost:5000/swagger`
+   *   **Database (PostgreSQL):** Chạy trên cổng `5432`
+
+#### Cách 2. Chạy thủ công (Manual Setup)
+Dành cho trường hợp bạn muốn viết code và debug chuyên sâu ở từng phần.
+
+**1. Khởi chạy Backend:**
 ```bash
 cd Backend
+# Cập nhật schema database (Nếu chưa có)
+dotnet ef database update
+# Chạy Web API
+dotnet run
 ```
-1.  **Cấu hình Biến môi trường:** Mở/tạo file `appsettings.Development.json` (hoặc `appsettings.json`) và cấu hình chuỗi kết nối Database cũng như JWT Secret Key:
-    ```json
-    {
-      "ConnectionStrings": {
-        "DefaultConnection": "Host=localhost;Port=5432;Database=techshop;Username=postgres;Password=local_password_123;"
-      },
-      "Jwt": {
-        "Key": "chuoi-ki-tu-bi-mat-cua-ban-dai-hon-32-ki-tu",
-        "Issuer": "TechShop",
-        "Audience": "TechShopClient"
-      }
-    }
-    ```
-2.  Cài đặt EF Core CLI (nếu chưa có): `dotnet tool install --global dotnet-ef`
-3.  Chạy Migrations để khởi tạo Database:
-    ```bash
-    dotnet ef database update
-    ```
-4.  Khởi chạy Backend:
-    ```bash
-    dotnet run
-    ```
+*(API sẽ khởi chạy ở `http://localhost:5000`)*
 
-#### Thiết lập Frontend (React)
-Mở một terminal mới và trỏ vào thư mục Frontend:
+**2. Khởi chạy Frontend:** Mở một cửa sổ Terminal mới
 ```bash
 cd Frontend
+# Cài đặt thư viện Node.js
+npm install
+# Khởi chạy server React/Vite
+npm run dev
 ```
-1.  **Cấu hình Biến môi trường:** Tạo file `.env` ở gốc thư mục `Frontend` (bạn có thể copy từ `.env.example` nếu có):
-    ```env
-    VITE_API_URL=http://localhost:5000
-    ```
-2.  Cài đặt dependencies và khởi chạy:
-    ```bash
-    npm install
-    npm run dev
-    ```
+*(Giao diện sẽ khởi chạy ở `http://localhost:5173`)*
 
 ## 📂 Cấu trúc thư mục (Folder Structure)
 
