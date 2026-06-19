@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # 1. DỊCH VỤ DATABASE ẢO (POSTGRESQL) - Dự phòng nếu máy không có appsettings.json
+  db:
+    image: postgres:15-alpine
+    container_name: techshop_db_dev
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=local_password_123
+      - POSTGRES_DB=techshop
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. DỊCH VỤ BACKEND (.NET CORE)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: techshop_backend_dev
+    ports:
+      - "5000:10000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - PORT=10000
+      # KHÔNG GHI ĐÈ BIẾN Ở ĐÂY NỮA. Backend sẽ tự quyết định dựa vào file appsettings.json
+    depends_on:
+      - db
+
+  # 3. DỊCH VỤ FRONTEND (REACT / VITE)
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: techshop_frontend_dev
+    ports:
+      - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Cờ này giúp hot-reload mượt hơn trên Docker
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

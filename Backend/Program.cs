@@ -106,6 +106,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    // Tự động đọc thư mục Migrations và tạo các bảng trong Database nếu chưa có
+    context.Database.Migrate(); 
     DbSeeder.Seed(context);
 }
 
